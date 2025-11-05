@@ -83,7 +83,8 @@ const InHouses = () => {
       cargarDatos();
       setMostrarModalUsuarios(false);
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error al asignar');
+      console.error('Error al asignar usuario:', error.response?.data);
+      toast.error(error.response?.data?.message || 'Error al asignar usuario');
     }
   };
 

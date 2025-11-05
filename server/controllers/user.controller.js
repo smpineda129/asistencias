@@ -6,15 +6,17 @@ const User = require('../models/User.model');
  */
 const obtenerUsuarios = async (req, res) => {
   try {
-    const { rol, activo } = req.query;
+    const { rol, activo, area } = req.query;
     
     // Construir filtro
     const filtro = {};
     if (rol) filtro.rol = rol;
     if (activo !== undefined) filtro.activo = activo === 'true';
+    if (area) filtro.area = area;
     
     const usuarios = await User.find(filtro)
       .select('-password')
+      .populate('area', 'nombre')
       .sort({ createdAt: -1 });
     
     res.status(200).json({
@@ -39,7 +41,10 @@ const obtenerUsuarios = async (req, res) => {
  */
 const obtenerUsuarioPorId = async (req, res) => {
   try {
-    const usuario = await User.findById(req.params.id).select('-password');
+    const usuario = await User.findById(req.params.id)
+      .select('-password')
+      .populate('area', 'nombre')
+      .populate('inHousesAsignados', 'nombre');
     
     if (!usuario) {
       return res.status(404).json({
