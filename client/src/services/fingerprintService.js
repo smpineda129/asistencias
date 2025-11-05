@@ -1,15 +1,18 @@
 /**
- * Servicio para integración con DigitalPersona U.are.U 4500
+ * Servicio para integración con HID DigitalPersona U.are.U 4500
  * 
- * IMPORTANTE: Este servicio requiere que el DigitalPersona WebSDK esté instalado
- * y el servicio de DigitalPersona esté corriendo en la máquina local.
+ * IMPORTANTE: Este servicio requiere HID Authentication Device Client (ADC)
+ * instalado en la máquina local.
  * 
  * Instalación:
- * 1. Descargar e instalar DigitalPersona U.are.U SDK desde:
- *    https://www.digitalpersona.com/support/
- * 2. Instalar el servicio WebSDK que corre en localhost
- * 3. Incluir el script en public/index.html:
- *    <script src="https://localhost:8443/websdk/websdk-bundle.js"></script>
+ * 1. Descargar e instalar HID Authentication Device Client (ADC) desde:
+ *    https://www.hidglobal.com/
+ * 2. Instalar la librería JavaScript:
+ *    npm install @digitalpersona/fingerprint
+ * 3. El cliente ADC debe estar corriendo en segundo plano
+ * 
+ * Documentación:
+ * https://github.com/hidglobal/digitalpersona-access-management-services
  */
 
 class FingerprintService {
