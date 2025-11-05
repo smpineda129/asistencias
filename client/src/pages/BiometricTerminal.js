@@ -16,6 +16,7 @@ const BiometricTerminal = () => {
     checkReader();
     const interval = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -23,6 +24,7 @@ const BiometricTerminal = () => {
     if (readerStatus.available && !scanning && !showResult) {
       startScanning();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readerStatus.available, scanning, showResult]);
 
   const checkReader = async () => {

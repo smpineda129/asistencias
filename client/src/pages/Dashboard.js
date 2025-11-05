@@ -4,7 +4,6 @@ import {
   Calendar, 
   Users, 
   TrendingUp, 
-  Clock,
   Filter,
   Download,
   RefreshCw,
@@ -48,6 +47,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     cargarDatos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const cargarDatos = async () => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Briefcase, Plus, Edit, Trash2, Users, UserPlus, X, Eye } from 'lucide-react';
+import { Briefcase, Plus, Edit, Trash2, UserPlus, X, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Navbar from '../components/Navbar';
 import api from '../utils/api';
@@ -25,6 +25,7 @@ const InHouses = () => {
 
   useEffect(() => {
     cargarDatos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areaId]);
 
   const cargarDatos = async () => {

@@ -23,6 +23,7 @@ const UserHome = () => {
       cargarAsistenciaActiva();
       cargarInHouses();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usuario]);
 
   const cargarInHouses = async () => {
