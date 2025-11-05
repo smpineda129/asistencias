@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { userAPI } from '../utils/api';
+import api from '../utils/api';
 import { 
   UserPlus, 
   Edit, 
@@ -17,6 +18,7 @@ import Navbar from '../components/Navbar';
 
 const Usuarios = () => {
   const [usuarios, setUsuarios] = useState([]);
+  const [areas, setAreas] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState('');
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -37,6 +39,7 @@ const Usuarios = () => {
 
   useEffect(() => {
     cargarUsuarios();
+    cargarAreas();
   }, []);
 
   const cargarUsuarios = async () => {
@@ -49,6 +52,16 @@ const Usuarios = () => {
       toast.error('Error al cargar usuarios');
     } finally {
       setCargando(false);
+    }
+  };
+
+  const cargarAreas = async () => {
+    try {
+      const response = await api.get('/areas');
+      setAreas(response.data.areas || []);
+    } catch (error) {
+      console.error('Error al cargar áreas:', error);
+      toast.error('Error al cargar áreas');
     }
   };
 
@@ -76,7 +89,7 @@ const Usuarios = () => {
       apellidos: usuario.apellidos,
       correo: usuario.correo,
       celular: usuario.celular,
-      area: usuario.area,
+      area: usuario.area?._id || usuario.area,
       rol: usuario.rol,
       password: '',
       activo: usuario.activo
@@ -259,7 +272,7 @@ const Usuarios = () => {
                           <td className="table-cell">
                             <div className="flex items-center">
                               <Briefcase size={16} className="text-gray-500 mr-2" />
-                              {usuario.area}
+                              {usuario.area?.nombre || usuario.area || 'Sin área'}
                             </div>
                           </td>
                           <td className="table-cell">
@@ -385,15 +398,20 @@ const Usuarios = () => {
                 {/* Área */}
                 <div>
                   <label className="label-field">Área *</label>
-                  <input
-                    type="text"
+                  <select
                     name="area"
                     value={formData.area}
                     onChange={handleInputChange}
                     className="input-field"
-                    placeholder="Ej: Recursos Humanos"
                     required
-                  />
+                  >
+                    <option value="">Seleccionar área</option>
+                    {areas.map((area) => (
+                      <option key={area._id} value={area._id}>
+                        {area.nombre}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Rol */}

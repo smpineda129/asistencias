@@ -14,10 +14,14 @@ const obtenerUsuarios = async (req, res) => {
     if (activo !== undefined) filtro.activo = activo === 'true';
     if (area) filtro.area = area;
     
+    console.log('Obteniendo usuarios con filtro:', filtro);
+    
     const usuarios = await User.find(filtro)
       .select('-password')
       .populate('area', 'nombre')
       .sort({ createdAt: -1 });
+    
+    console.log(`Usuarios encontrados: ${usuarios.length}`);
     
     res.status(200).json({
       success: true,

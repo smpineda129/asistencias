@@ -13,6 +13,7 @@ const TiempoReal = () => {
     try {
       setCargando(true);
       const response = await attendanceAPI.obtenerEstadoTiempoReal();
+      console.log("usuariosActivos", response.data)
       setDatos(response.data);
       setUltimaActualizacion(new Date());
     } catch (error) {

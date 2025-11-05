@@ -36,11 +36,16 @@ const InHouses = () => {
         api.get(`/areas/${areaId}/inhouses`),
         api.get(`/users?area=${areaId}`)
       ]);
+      console.log('Datos cargados:', {
+        area: areaRes.data.area,
+        inHouses: inHousesRes.data.inHouses?.length,
+        usuarios: usuariosRes.data.usuarios?.length
+      });
       setArea(areaRes.data.area);
       setInHouses(inHousesRes.data.inHouses || []);
       setUsuarios(usuariosRes.data.usuarios || []);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error al cargar datos:', error);
       toast.error('Error al cargar datos');
     } finally {
       setCargando(false);
@@ -347,7 +352,9 @@ const InHouses = () => {
                 )}
               </div>
 
-              <h3 className="font-bold text-lg mb-4">Usuarios Disponibles</h3>
+              <h3 className="font-bold text-lg mb-4">
+                Usuarios Disponibles ({usuarios.length} total)
+              </h3>
               <div className="space-y-2">
                 {usuarios
                   .filter(u => !inHouseSeleccionado.usuariosAsignados?.some(ua => ua._id === u._id))
@@ -365,6 +372,13 @@ const InHouses = () => {
                       </button>
                     </div>
                   ))}
+                {usuarios.filter(u => !inHouseSeleccionado.usuariosAsignados?.some(ua => ua._id === u._id)).length === 0 && (
+                  <p className="text-gray-500 text-center py-4">
+                    {usuarios.length === 0 
+                      ? 'No hay usuarios en esta área' 
+                      : 'Todos los usuarios ya están asignados'}
+                  </p>
+                )}
               </div>
             </div>
           </div>
