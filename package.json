@@ -1,0 +1,18 @@
+{
+  "name": "sistema-asistencia",
+  "version": "1.0.0",
+  "description": "Sistema de control de ingreso del personal con React, Node.js, Express y MongoDB",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npx nodemon index.js",
+    "client": "cd client && npm start",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "keywords": ["asistencia", "control", "personal", "react", "nodejs", "mongodb"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
