@@ -233,7 +233,7 @@ exports.asignarUsuario = async (req, res) => {
 
     console.log('Asignando usuario:', { inhouseId: req.params.id, usuarioId });
 
-    const inHouse = await InHouse.findById(req.params.id);
+    const inHouse = await InHouse.findById(req.params.id).populate('area');
     if (!inHouse) {
       return res.status(404).json({
         success: false,
@@ -241,7 +241,7 @@ exports.asignarUsuario = async (req, res) => {
       });
     }
 
-    const usuario = await User.findById(usuarioId);
+    const usuario = await User.findById(usuarioId).populate('area');
     if (!usuario) {
       return res.status(404).json({
         success: false,
@@ -249,11 +249,37 @@ exports.asignarUsuario = async (req, res) => {
       });
     }
 
-    console.log('Usuario encontrado:', { nombre: usuario.nombre, area: usuario.area });
-    console.log('InHouse encontrado:', { nombre: inHouse.nombre, area: inHouse.area });
+    // Verificar que el usuario tenga área asignada
+    if (!usuario.area) {
+      return res.status(400).json({
+        success: false,
+        message: 'El usuario no tiene un área asignada'
+      });
+    }
+
+    // Verificar que el InHouse tenga área asignada
+    if (!inHouse.area) {
+      return res.status(400).json({
+        success: false,
+        message: 'El In House no tiene un área asignada'
+      });
+    }
+
+    console.log('Usuario encontrado:', { 
+      nombre: usuario.nombre, 
+      area: usuario.area._id || usuario.area 
+    });
+    console.log('InHouse encontrado:', { 
+      nombre: inHouse.nombre, 
+      area: inHouse.area._id || inHouse.area 
+    });
 
     // Verificar que el usuario pertenezca a la misma área
-    if (usuario.area.toString() !== inHouse.area.toString()) {
+    // Comparar los IDs correctamente (pueden ser ObjectId o objetos populados)
+    const usuarioAreaId = usuario.area._id ? usuario.area._id.toString() : usuario.area.toString();
+    const inHouseAreaId = inHouse.area._id ? inHouse.area._id.toString() : inHouse.area.toString();
+    
+    if (usuarioAreaId !== inHouseAreaId) {
       return res.status(400).json({
         success: false,
         message: 'El usuario no pertenece al área del In House'
