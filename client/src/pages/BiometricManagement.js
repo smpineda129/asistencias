@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Fingerprint, Plus, Trash2, CheckCircle, AlertCircle, Users, TrendingUp, Search } from 'lucide-react';
+import { Fingerprint, Plus, Trash2, CheckCircle, AlertCircle, Users, TrendingUp } from 'lucide-react';
 import { biometricAPI, userAPI } from '../utils/api';
 import FingerprintEnrollment from '../components/FingerprintEnrollment';
 import Navbar from '../components/Navbar';

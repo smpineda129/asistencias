@@ -20,6 +20,7 @@ export const AuthProvider = ({ children }) => {
   // Verificar si hay un usuario guardado al cargar
   useEffect(() => {
     verificarAutenticacion();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const verificarAutenticacion = async () => {

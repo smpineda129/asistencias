@@ -28,6 +28,7 @@ const FingerprintEnrollment = ({ usuario, onSuccess, onCancel }) => {
   useEffect(() => {
     checkReader();
     loadExistingFingerprints();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkReader = async () => {
