@@ -231,6 +231,8 @@ exports.asignarUsuario = async (req, res) => {
   try {
     const { usuarioId } = req.body;
 
+    console.log('Asignando usuario:', { inhouseId: req.params.id, usuarioId });
+
     const inHouse = await InHouse.findById(req.params.id);
     if (!inHouse) {
       return res.status(404).json({
@@ -247,6 +249,9 @@ exports.asignarUsuario = async (req, res) => {
       });
     }
 
+    console.log('Usuario encontrado:', { nombre: usuario.nombre, area: usuario.area });
+    console.log('InHouse encontrado:', { nombre: inHouse.nombre, area: inHouse.area });
+
     // Verificar que el usuario pertenezca a la misma área
     if (usuario.area.toString() !== inHouse.area.toString()) {
       return res.status(400).json({
@@ -255,14 +260,30 @@ exports.asignarUsuario = async (req, res) => {
       });
     }
 
+    // Verificar si el usuario ya está asignado
+    if (inHouse.tieneUsuarioAsignado(usuarioId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'El usuario ya está asignado a este In House'
+      });
+    }
+
     // Agregar usuario al In House
+    console.log('Agregando usuario al InHouse...');
     await inHouse.agregarUsuario(usuarioId);
 
     // Agregar In House a la lista del usuario
-    if (!usuario.inHousesAsignados.includes(inHouse._id)) {
+    console.log('Agregando InHouse al usuario...');
+    if (!usuario.inHousesAsignados) {
+      usuario.inHousesAsignados = [];
+    }
+    
+    if (!usuario.inHousesAsignados.some(ih => ih.toString() === inHouse._id.toString())) {
       usuario.inHousesAsignados.push(inHouse._id);
       await usuario.save();
     }
+
+    console.log('Usuario asignado exitosamente');
 
     res.json({
       success: true,
@@ -271,11 +292,13 @@ exports.asignarUsuario = async (req, res) => {
         .populate('usuariosAsignados', 'nombre apellidos correo')
     });
   } catch (error) {
-    console.error('Error al asignar usuario:', error);
+    console.error('Error detallado al asignar usuario:', error);
+    console.error('Stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Error al asignar usuario',
-      error: error.message
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };

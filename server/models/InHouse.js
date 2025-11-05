@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const inHouseSchema = new mongoose.Schema({
   nombre: {
@@ -55,6 +56,27 @@ const inHouseSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Middleware para encriptar contraseña antes de guardar
+inHouseSchema.pre('save', async function(next) {
+  // Solo encriptar si la contraseña fue modificada
+  if (!this.isModified('password')) {
+    return next();
+  }
+  
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Método para comparar contraseñas
+inHouseSchema.methods.compararPassword = async function(passwordIngresado) {
+  return await bcrypt.compare(passwordIngresado, this.password);
+};
 
 // Índices para búsquedas rápidas
 inHouseSchema.index({ area: 1 });
