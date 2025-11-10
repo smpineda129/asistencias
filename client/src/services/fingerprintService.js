@@ -1,60 +1,72 @@
 /**
  * Servicio para integración con HID DigitalPersona U.are.U 4500
+ * usando HID DigitalPersona Lite Client
  * 
- * IMPORTANTE: Este servicio requiere HID Authentication Device Client (ADC)
- * instalado en la máquina local.
+ * IMPORTANTE: Este servicio requiere HID DigitalPersona Lite Client
+ * instalado y corriendo en la máquina local.
  * 
  * Instalación:
- * 1. Descargar e instalar HID Authentication Device Client (ADC) desde:
- *    https://www.hidglobal.com/
- * 2. Instalar la librería JavaScript:
- *    npm install @digitalpersona/fingerprint
- * 3. El cliente ADC debe estar corriendo en segundo plano
+ * 1. Descargar e instalar HID DigitalPersona Lite Client desde:
+ *    https://digitalpersona.hidglobal.com/lite-client
+ * 2. El cliente debe estar corriendo en http://localhost:5000
+ * 3. Conectar el lector DigitalPersona U.are.U 4500 vía USB
  * 
- * Documentación:
- * https://github.com/hidglobal/digitalpersona-access-management-services
+ * API REST:
+ * - GET  /info - Información del lector
+ * - POST /capture - Capturar huella
+ * - POST /verify - Verificar huella
  */
 
 class FingerprintService {
   constructor() {
-    this.sdk = null;
-    this.reader = null;
+    this.baseURL = 'http://localhost:5000';
     this.initialized = false;
     this.deviceInfo = {
       modelo: 'DigitalPersona 4500',
       serial: null,
-      version: null
+      version: null,
+      connected: false
     };
   }
 
   /**
-   * Inicializa el SDK de DigitalPersona
+   * Inicializa y verifica la conexión con el Lite Client
    */
   async initialize() {
     try {
-      // Verificar si el SDK está disponible
-      if (typeof window.Fingerprint === 'undefined') {
-        throw new Error('DigitalPersona WebSDK no está cargado. Asegúrese de que el servicio esté corriendo.');
+      console.log('🔌 Conectando con HID DigitalPersona Lite Client...');
+      
+      const response = await fetch(`${this.baseURL}/info`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('No se pudo conectar con el Lite Client. Verifique que esté corriendo.');
       }
 
-      this.sdk = window.Fingerprint;
+      const info = await response.json();
       
-      // Obtener lista de dispositivos
-      const devices = await this.sdk.DeviceConnected();
-      
-      if (!devices || devices.length === 0) {
-        throw new Error('No se detectó ningún lector de huellas. Verifique que esté conectado.');
+      this.deviceInfo = {
+        modelo: info.deviceName || 'DigitalPersona 4500',
+        serial: info.serialNumber || 'Unknown',
+        version: info.version || 'Unknown',
+        connected: info.connected || false
+      };
+
+      if (!this.deviceInfo.connected) {
+        throw new Error('Lector no conectado. Verifique la conexión USB.');
       }
 
-      this.reader = devices[0];
-      this.deviceInfo.serial = this.reader.DeviceID || 'Unknown';
       this.initialized = true;
-
       console.log('✅ Lector de huellas inicializado:', this.deviceInfo);
       return true;
 
     } catch (error) {
       console.error('❌ Error al inicializar lector de huellas:', error);
+      this.initialized = false;
       throw error;
     }
   }
@@ -71,29 +83,32 @@ class FingerprintService {
 
       console.log('📸 Esperando captura de huella...');
 
-      // Crear un objeto de adquisición
-      const acquisitionData = await this.sdk.AcquireFingerprintSample();
+      const response = await fetch(`${this.baseURL}/capture`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          timeout: 10000 // 10 segundos de timeout
+        })
+      });
 
-      if (!acquisitionData || !acquisitionData.Data) {
-        throw new Error('No se pudo capturar la huella. Intente nuevamente.');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Error al capturar huella');
       }
 
-      // Extraer características (crear FMD - Fingerprint Minutiae Data)
-      const fmd = await this.sdk.CreateFmd(acquisitionData.Data);
+      const data = await response.json();
 
-      if (!fmd || !fmd.Data) {
-        throw new Error('No se pudieron extraer las características de la huella.');
+      if (!data.template) {
+        throw new Error('No se pudo obtener el template de la huella.');
       }
 
-      // Calcular calidad
-      const quality = this.calculateQuality(acquisitionData);
-
-      console.log('✅ Huella capturada exitosamente. Calidad:', quality);
+      console.log('✅ Huella capturada exitosamente. Calidad:', data.quality || 'N/A');
 
       return {
-        template: fmd.Data, // Template en formato base64
-        calidad: quality,
-        raw: acquisitionData.Data, // Datos raw (opcional, para debug)
+        template: data.template, // Template en formato base64
+        calidad: data.quality || 75,
         timestamp: new Date().toISOString()
       };
 
@@ -143,16 +158,23 @@ class FingerprintService {
    */
   async checkReaderAvailable() {
     try {
-      if (typeof window.Fingerprint === 'undefined') {
+      const response = await fetch(`${this.baseURL}/info`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
         return {
           available: false,
-          message: 'SDK no cargado. Instale DigitalPersona WebSDK.'
+          message: 'Lite Client no está corriendo. Inicie el servicio.'
         };
       }
 
-      const devices = await window.Fingerprint.DeviceConnected();
-      
-      if (!devices || devices.length === 0) {
+      const info = await response.json();
+
+      if (!info.connected) {
         return {
           available: false,
           message: 'Lector no conectado. Verifique la conexión USB.'
@@ -162,13 +184,13 @@ class FingerprintService {
       return {
         available: true,
         message: 'Lector disponible',
-        device: devices[0]
+        device: info
       };
 
     } catch (error) {
       return {
         available: false,
-        message: `Error: ${error.message}`
+        message: 'No se pudo conectar con el Lite Client. Verifique que esté instalado y corriendo.'
       };
     }
   }
@@ -209,9 +231,6 @@ class FingerprintService {
    */
   async release() {
     try {
-      if (this.sdk && this.sdk.StopAcquisition) {
-        await this.sdk.StopAcquisition();
-      }
       this.initialized = false;
       console.log('✅ Lector de huellas liberado');
     } catch (error) {
@@ -227,10 +246,20 @@ class FingerprintService {
   }
 
   /**
-   * Verifica si el SDK está disponible (sin inicializar el lector)
+   * Verifica si el Lite Client está disponible (sin inicializar el lector)
    */
-  isSDKAvailable() {
-    return typeof window.Fingerprint !== 'undefined';
+  async isSDKAvailable() {
+    try {
+      const response = await fetch(`${this.baseURL}/info`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.ok;
+    } catch (error) {
+      return false;
+    }
   }
 }
 
