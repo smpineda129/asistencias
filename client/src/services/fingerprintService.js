@@ -1,25 +1,22 @@
 /**
  * Servicio para integración con HID DigitalPersona U.are.U 4500
- * usando HID DigitalPersona Lite Client
+ * usando @digitalpersona/devices
  * 
- * IMPORTANTE: Este servicio requiere HID DigitalPersona Lite Client
- * instalado y corriendo en la máquina local.
+ * IMPORTANTE: Este servicio requiere:
+ * 1. DigitalPersona WebSDK Service corriendo en Windows
+ * 2. Lector DigitalPersona U.are.U 4500 conectado vía USB
+ * 3. Librerías instaladas: npm install @digitalpersona/devices @digitalpersona/core
  * 
- * Instalación:
- * 1. Descargar e instalar HID DigitalPersona Lite Client desde:
- *    https://digitalpersona.hidglobal.com/lite-client
- * 2. El cliente debe estar corriendo en http://localhost:5000
- * 3. Conectar el lector DigitalPersona U.are.U 4500 vía USB
- * 
- * API REST:
- * - GET  /info - Información del lector
- * - POST /capture - Capturar huella
- * - POST /verify - Verificar huella
+ * Documentación:
+ * https://github.com/hidglobal/digitalpersona-devices
  */
+
+import { FingerprintReader, SampleFormat } from '@digitalpersona/devices';
+import { Utf8 } from '@digitalpersona/core';
 
 class FingerprintService {
   constructor() {
-    this.baseURL = 'http://localhost:5000';
+    this.reader = null;
     this.initialized = false;
     this.deviceInfo = {
       modelo: 'DigitalPersona 4500',
@@ -30,35 +27,29 @@ class FingerprintService {
   }
 
   /**
-   * Inicializa y verifica la conexión con el Lite Client
+   * Inicializa el lector de huellas
    */
   async initialize() {
     try {
-      console.log('🔌 Conectando con HID DigitalPersona Lite Client...');
+      console.log('🔌 Inicializando lector DigitalPersona...');
       
-      const response = await fetch(`${this.baseURL}/info`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('No se pudo conectar con el Lite Client. Verifique que esté corriendo.');
+      // Crear instancia del lector
+      this.reader = new FingerprintReader();
+      
+      // Obtener lista de dispositivos
+      const devices = await this.reader.enumerateDevices();
+      
+      if (!devices || devices.length === 0) {
+        throw new Error('No se detectó ningún lector de huellas. Verifique que esté conectado.');
       }
 
-      const info = await response.json();
-      
+      const device = devices[0];
       this.deviceInfo = {
-        modelo: info.deviceName || 'DigitalPersona 4500',
-        serial: info.serialNumber || 'Unknown',
-        version: info.version || 'Unknown',
-        connected: info.connected || false
+        modelo: device.deviceId || 'DigitalPersona 4500',
+        serial: device.deviceId || 'Unknown',
+        version: device.version || 'Unknown',
+        connected: true
       };
-
-      if (!this.deviceInfo.connected) {
-        throw new Error('Lector no conectado. Verifique la conexión USB.');
-      }
 
       this.initialized = true;
       console.log('✅ Lector de huellas inicializado:', this.deviceInfo);
@@ -67,7 +58,7 @@ class FingerprintService {
     } catch (error) {
       console.error('❌ Error al inicializar lector de huellas:', error);
       this.initialized = false;
-      throw error;
+      throw new Error('No se pudo conectar con el lector. Verifique que el DigitalPersona WebSDK Service esté corriendo.');
     }
   }
 
@@ -83,37 +74,51 @@ class FingerprintService {
 
       console.log('📸 Esperando captura de huella...');
 
-      const response = await fetch(`${this.baseURL}/capture`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          timeout: 10000 // 10 segundos de timeout
-        })
+      // Iniciar adquisición
+      await this.reader.startAcquisition(SampleFormat.PngImage);
+
+      // Esperar captura (el lector emite un evento cuando captura)
+      const sample = await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Timeout: No se detectó huella en 10 segundos'));
+        }, 10000);
+
+        this.reader.on('SamplesAcquired', (event) => {
+          clearTimeout(timeout);
+          resolve(event.samples[0]);
+        });
+
+        this.reader.on('ErrorOccurred', (event) => {
+          clearTimeout(timeout);
+          reject(new Error(event.error || 'Error al capturar huella'));
+        });
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Error al capturar huella');
+      // Detener adquisición
+      await this.reader.stopAcquisition();
+
+      if (!sample || !sample.Data) {
+        throw new Error('No se pudo capturar la huella. Intente nuevamente.');
       }
 
-      const data = await response.json();
+      // Convertir a base64
+      const template = Utf8.fromByteArray(sample.Data);
+      const calidad = this.calculateQuality(sample);
 
-      if (!data.template) {
-        throw new Error('No se pudo obtener el template de la huella.');
-      }
-
-      console.log('✅ Huella capturada exitosamente. Calidad:', data.quality || 'N/A');
+      console.log('✅ Huella capturada exitosamente. Calidad:', calidad);
 
       return {
-        template: data.template, // Template en formato base64
-        calidad: data.quality || 75,
+        template: template,
+        calidad: calidad,
         timestamp: new Date().toISOString()
       };
 
     } catch (error) {
       console.error('❌ Error al capturar huella:', error);
+      // Asegurarse de detener la adquisición
+      try {
+        await this.reader.stopAcquisition();
+      } catch (e) {}
       throw error;
     }
   }
@@ -158,23 +163,10 @@ class FingerprintService {
    */
   async checkReaderAvailable() {
     try {
-      const response = await fetch(`${this.baseURL}/info`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        return {
-          available: false,
-          message: 'Lite Client no está corriendo. Inicie el servicio.'
-        };
-      }
-
-      const info = await response.json();
-
-      if (!info.connected) {
+      const reader = new FingerprintReader();
+      const devices = await reader.enumerateDevices();
+      
+      if (!devices || devices.length === 0) {
         return {
           available: false,
           message: 'Lector no conectado. Verifique la conexión USB.'
@@ -184,13 +176,13 @@ class FingerprintService {
       return {
         available: true,
         message: 'Lector disponible',
-        device: info
+        device: devices[0]
       };
 
     } catch (error) {
       return {
         available: false,
-        message: 'No se pudo conectar con el Lite Client. Verifique que esté instalado y corriendo.'
+        message: 'No se pudo conectar con el lector. Verifique que el DigitalPersona WebSDK Service esté corriendo.'
       };
     }
   }
@@ -231,6 +223,9 @@ class FingerprintService {
    */
   async release() {
     try {
+      if (this.reader) {
+        await this.reader.stopAcquisition();
+      }
       this.initialized = false;
       console.log('✅ Lector de huellas liberado');
     } catch (error) {
@@ -246,17 +241,13 @@ class FingerprintService {
   }
 
   /**
-   * Verifica si el Lite Client está disponible (sin inicializar el lector)
+   * Verifica si el SDK está disponible (sin inicializar el lector)
    */
   async isSDKAvailable() {
     try {
-      const response = await fetch(`${this.baseURL}/info`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      return response.ok;
+      const reader = new FingerprintReader();
+      const devices = await reader.enumerateDevices();
+      return devices && devices.length > 0;
     } catch (error) {
       return false;
     }
