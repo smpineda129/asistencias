@@ -7,102 +7,98 @@ Esta guía explica cómo instalar y configurar el SDK oficial de HID DigitalPers
 - **Lector:** DigitalPersona U.are.U 4500 (o compatible)
 - **Sistema Operativo:** Windows 10 o superior
 - **Navegadores:** Chrome, Firefox, Edge
+- **Node.js:** v14 o superior
 
 ---
 
-## 🔧 Paso 1: Instalar HID Authentication Device Client (ADC)
+## 🔧 Paso 1: Instalar DigitalPersona WebSDK Service
 
-### **Descargar el Cliente**
+### **Descargar e Instalar**
 
-1. Ve a: https://www.hidglobal.com/
-2. Busca "Authentication Device Client" o "ADC"
-3. Descarga la versión para Windows
-4. Ejecuta el instalador
+1. Ve a: https://digitalpersona.hidglobal.com/
+2. Descarga el **DigitalPersona WebSDK Service** para Windows
+3. Ejecuta el instalador como Administrador
+4. Sigue las instrucciones del asistente
 
 ### **Verificar Instalación**
 
 Después de instalar:
 1. Conecta tu lector DigitalPersona 4500 vía USB
-2. El cliente ADC debería detectarlo automáticamente
+2. El servicio debería iniciarse automáticamente
 3. Verifica en el Administrador de Dispositivos que aparece como "HID DigitalPersona"
+4. Verifica que el servicio esté corriendo:
+   - Abre Servicios de Windows (services.msc)
+   - Busca "DigitalPersona WebSDK Service"
+   - Debe estar en estado "En ejecución"
 
 ---
 
-## 📦 Paso 2: Instalar la Librería JavaScript
+## 📦 Paso 2: Instalar las Librerías JavaScript
 
-En tu proyecto, instala el paquete npm:
+En tu proyecto, instala los paquetes npm:
 
 ```bash
 cd client
-npm install @digitalpersona/fingerprint
+npm install @digitalpersona/devices @digitalpersona/core
 ```
 
-Si el paquete no está disponible en npm, descarga los archivos desde:
-https://github.com/hidglobal/digitalpersona-access-management-services
-
-Y copia estos archivos a `client/public/`:
-```
-fingerprint.sdk.js
-fingerprint.sdk.d.ts
-```
+Estas librerías permiten que tu aplicación web se comunique con el DigitalPersona WebSDK Service.
 
 ---
 
-## 🔌 Paso 3: Configurar el Proyecto
+## 🔌 Paso 3: Configurar el Proyecto en Windows
 
-### **Opción A: Usando npm (Recomendado)**
+### **Clonar el Repositorio**
 
-Si instalaste vía npm, importa en tu servicio:
+En la máquina Windows donde está el lector:
 
-```javascript
-import { FingerprintReader } from '@digitalpersona/fingerprint';
+```bash
+git clone https://github.com/smpineda129/asistencias.git
+cd asistencias
 ```
 
-### **Opción B: Usando archivos locales**
+### **Instalar Dependencias**
 
-Si descargaste los archivos manualmente:
+```bash
+# Instalar dependencias del cliente
+cd client
+npm install
 
-1. Copia `fingerprint.sdk.js` a `client/public/`
-2. Agrega el script en `client/public/index.html`:
-
-```html
-<!DOCTYPE html>
-<html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Sistema de Asistencia</title>
-    
-    <!-- HID DigitalPersona SDK -->
-    <script src="%PUBLIC_URL%/fingerprint.sdk.js"></script>
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
-</html>
+# Volver a la raíz
+cd ..
 ```
+
+### **Configurar Variables de Entorno**
+
+Crea un archivo `.env.local` en la carpeta `client/`:
+
+```env
+REACT_APP_API_URL=https://sistema-asistencia-api-hjmc.onrender.com
+```
+
+Esto conectará tu frontend local con el backend desplegado en Render.
 
 ---
 
-## ✅ Paso 4: Probar la Instalación
+## ✅ Paso 4: Ejecutar la Aplicación
 
-### **Verificar que el Cliente ADC está corriendo**
+### **Iniciar el Frontend**
 
-1. Abre el Administrador de Tareas (Ctrl + Shift + Esc)
-2. Busca procesos relacionados con "DigitalPersona" o "HID"
-3. Debería haber un servicio corriendo
+En la carpeta `client/`:
 
-### **Probar en tu Aplicación**
-
-1. Inicia tu aplicación React:
 ```bash
 npm start
 ```
 
-2. Ve a la página de Biometría
-3. Intenta registrar una huella
-4. Si todo está bien, debería detectar el lector
+La aplicación se abrirá en `http://localhost:3000`
+
+### **Probar el Lector Biométrico**
+
+1. Inicia sesión en la aplicación
+2. Ve a la sección de **Biometría** o **Terminal Biométrico**
+3. El sistema debería detectar automáticamente el lector
+4. Intenta registrar una huella
+5. El lector debería encenderse y esperar tu dedo
 
 ---
 
