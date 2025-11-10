@@ -33,14 +33,19 @@ Después de instalar:
 
 ---
 
-## 📦 Paso 2: Instalar las Librerías JavaScript
+## 📦 Paso 2: Instalar las Librerías JavaScript (Solo en Windows Local)
 
-En tu proyecto, instala los paquetes npm:
+**IMPORTANTE:** Estas librerías NO están en `package.json` para evitar errores en el build de producción.
+
+En la máquina Windows, después de clonar el repositorio e instalar las dependencias normales, instala manualmente:
 
 ```bash
 cd client
-npm install @digitalpersona/devices @digitalpersona/core
+npm install
+npm install @digitalpersona/devices @digitalpersona/core --no-save
 ```
+
+El flag `--no-save` evita que se agreguen al `package.json`.
 
 Estas librerías permiten que tu aplicación web se comunique con el DigitalPersona WebSDK Service.
 
@@ -63,6 +68,9 @@ cd asistencias
 # Instalar dependencias del cliente
 cd client
 npm install
+
+# Instalar librerías de DigitalPersona (solo en Windows local)
+npm install @digitalpersona/devices @digitalpersona/core --no-save
 
 # Volver a la raíz
 cd ..

@@ -13,10 +13,6 @@
     "react-scripts": "5.0.1",
     "recharts": "^2.10.3"
   },
-  "optionalDependencies": {
-    "@digitalpersona/core": "^0.2.6",
-    "@digitalpersona/devices": "^0.2.6"
-  },
   "devDependencies": {
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.32",
