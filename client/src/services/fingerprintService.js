@@ -6,13 +6,24 @@
  * 1. DigitalPersona WebSDK Service corriendo en Windows
  * 2. Lector DigitalPersona U.are.U 4500 conectado vía USB
  * 3. Librerías instaladas: npm install @digitalpersona/devices @digitalpersona/core
+ * 4. Solo funciona en entorno local (no en producción)
  * 
  * Documentación:
  * https://github.com/hidglobal/digitalpersona-devices
  */
 
-import { FingerprintReader, SampleFormat } from '@digitalpersona/devices';
-import { Utf8 } from '@digitalpersona/core';
+// Importación condicional para evitar errores en build de producción
+let FingerprintReader, SampleFormat, Utf8;
+
+try {
+  const devices = require('@digitalpersona/devices');
+  const core = require('@digitalpersona/core');
+  FingerprintReader = devices.FingerprintReader;
+  SampleFormat = devices.SampleFormat;
+  Utf8 = core.Utf8;
+} catch (error) {
+  console.warn('⚠️ @digitalpersona/devices no disponible. El lector biométrico solo funciona en entorno local.');
+}
 
 class FingerprintService {
   constructor() {
@@ -31,6 +42,10 @@ class FingerprintService {
    */
   async initialize() {
     try {
+      if (!FingerprintReader) {
+        throw new Error('SDK no disponible. El lector biométrico solo funciona en entorno local con las librerías instaladas.');
+      }
+
       console.log('🔌 Inicializando lector DigitalPersona...');
       
       // Crear instancia del lector
@@ -163,6 +178,13 @@ class FingerprintService {
    */
   async checkReaderAvailable() {
     try {
+      if (!FingerprintReader) {
+        return {
+          available: false,
+          message: 'SDK no disponible. El lector biométrico solo funciona en entorno local.'
+        };
+      }
+
       const reader = new FingerprintReader();
       const devices = await reader.enumerateDevices();
       
@@ -245,6 +267,9 @@ class FingerprintService {
    */
   async isSDKAvailable() {
     try {
+      if (!FingerprintReader) {
+        return false;
+      }
       const reader = new FingerprintReader();
       const devices = await reader.enumerateDevices();
       return devices && devices.length > 0;

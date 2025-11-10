@@ -3,8 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "@digitalpersona/core": "^0.2.6",
-    "@digitalpersona/devices": "^0.2.6",
     "axios": "^1.6.2",
     "date-fns": "^2.30.0",
     "lucide-react": "^0.294.0",
@@ -14,6 +12,10 @@
     "react-router-dom": "^6.20.1",
     "react-scripts": "5.0.1",
     "recharts": "^2.10.3"
+  },
+  "optionalDependencies": {
+    "@digitalpersona/core": "^0.2.6",
+    "@digitalpersona/devices": "^0.2.6"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",
