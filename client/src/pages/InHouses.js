@@ -715,7 +715,10 @@ const InHouses = () => {
                     {inHouseSeleccionado.ubicacion.coordenadas && (
                       <p className="text-gray-600 text-sm">
                         <span className="font-semibold">Coordenadas:</span>{' '}
-                        {inHouseSeleccionado.ubicacion.coordenadas.lat?.toFixed(6)}, {inHouseSeleccionado.ubicacion.coordenadas.lng?.toFixed(6)}
+                        {inHouseSeleccionado.ubicacion.coordenadas.coordinates 
+                          ? `${inHouseSeleccionado.ubicacion.coordenadas.coordinates[1]?.toFixed(6)}, ${inHouseSeleccionado.ubicacion.coordenadas.coordinates[0]?.toFixed(6)}`
+                          : `${inHouseSeleccionado.ubicacion.coordenadas.lat?.toFixed(6)}, ${inHouseSeleccionado.ubicacion.coordenadas.lng?.toFixed(6)}`
+                        }
                       </p>
                     )}
                     {inHouseSeleccionado.ubicacion.radioPermitido && (

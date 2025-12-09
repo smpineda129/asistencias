@@ -94,16 +94,28 @@ const InHousesAdmin = () => {
   const abrirModal = (inHouse = null) => {
     if (inHouse) {
       setInHouseEditando(inHouse);
+      
+      // Convertir coordenadas GeoJSON a formato lat/lng si es necesario
+      let lat = null;
+      let lng = null;
+      if (inHouse.ubicacion?.coordenadas) {
+        if (inHouse.ubicacion.coordenadas.coordinates) {
+          // Formato GeoJSON: [lng, lat]
+          [lng, lat] = inHouse.ubicacion.coordenadas.coordinates;
+        } else if (inHouse.ubicacion.coordenadas.lat && inHouse.ubicacion.coordenadas.lng) {
+          // Formato antiguo: {lat, lng}
+          lat = inHouse.ubicacion.coordenadas.lat;
+          lng = inHouse.ubicacion.coordenadas.lng;
+        }
+      }
+      
       setFormData({
         nombre: inHouse.nombre,
         areas: inHouse.areas?.map(a => a._id) || [],
         encargado: inHouse.encargado?._id || inHouse.encargado || '',
         ubicacion: {
           direccion: inHouse.ubicacion?.direccion || '',
-          coordenadas: {
-            lat: inHouse.ubicacion?.coordenadas?.lat || null,
-            lng: inHouse.ubicacion?.coordenadas?.lng || null
-          },
+          coordenadas: { lat, lng },
           radioPermitido: inHouse.ubicacion?.radioPermitido || 100
         }
       });

@@ -48,8 +48,8 @@ exports.crearInHouse = async (req, res) => {
       ubicacion: {
         direccion: ubicacion.direccion || '',
         coordenadas: {
-          lat: ubicacion.coordenadas.lat,
-          lng: ubicacion.coordenadas.lng
+          type: 'Point',
+          coordinates: [ubicacion.coordenadas.lng, ubicacion.coordenadas.lat] // GeoJSON: [longitude, latitude]
         },
         radioPermitido: ubicacion.radioPermitido || 100
       }
@@ -236,9 +236,11 @@ exports.actualizarInHouse = async (req, res) => {
     // Actualizar ubicación
     if (ubicacion) {
       if (ubicacion.direccion !== undefined) inHouse.ubicacion.direccion = ubicacion.direccion;
-      if (ubicacion.coordenadas) {
-        if (ubicacion.coordenadas.lat !== undefined) inHouse.ubicacion.coordenadas.lat = ubicacion.coordenadas.lat;
-        if (ubicacion.coordenadas.lng !== undefined) inHouse.ubicacion.coordenadas.lng = ubicacion.coordenadas.lng;
+      if (ubicacion.coordenadas && ubicacion.coordenadas.lat !== undefined && ubicacion.coordenadas.lng !== undefined) {
+        inHouse.ubicacion.coordenadas = {
+          type: 'Point',
+          coordinates: [ubicacion.coordenadas.lng, ubicacion.coordenadas.lat] // GeoJSON: [longitude, latitude]
+        };
       }
       if (ubicacion.radioPermitido !== undefined) inHouse.ubicacion.radioPermitido = ubicacion.radioPermitido;
     }

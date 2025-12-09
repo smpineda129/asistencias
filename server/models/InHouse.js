@@ -17,13 +17,14 @@ const inHouseSchema = new mongoose.Schema({
       trim: true
     },
     coordenadas: {
-      lat: {
-        type: Number,
-        required: [true, 'La latitud es requerida']
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point'
       },
-      lng: {
-        type: Number,
-        required: [true, 'La longitud es requerida']
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        required: [true, 'Las coordenadas son requeridas']
       }
     },
     radioPermitido: {
@@ -120,10 +121,13 @@ inHouseSchema.methods.obtenerEstadisticas = async function() {
 // Método para validar distancia usando fórmula de Haversine
 inHouseSchema.methods.validarDistancia = function(lat, lng) {
   const R = 6371e3; // Radio de la Tierra en metros
-  const φ1 = this.ubicacion.coordenadas.lat * Math.PI / 180;
+  // coordinates es [longitude, latitude] en GeoJSON
+  const [storedLng, storedLat] = this.ubicacion.coordenadas.coordinates;
+  
+  const φ1 = storedLat * Math.PI / 180;
   const φ2 = lat * Math.PI / 180;
-  const Δφ = (lat - this.ubicacion.coordenadas.lat) * Math.PI / 180;
-  const Δλ = (lng - this.ubicacion.coordenadas.lng) * Math.PI / 180;
+  const Δφ = (lat - storedLat) * Math.PI / 180;
+  const Δλ = (lng - storedLng) * Math.PI / 180;
 
   const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
             Math.cos(φ1) * Math.cos(φ2) *
