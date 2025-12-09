@@ -130,6 +130,7 @@ const MapSelector = ({
       if (marker) marker.setMap(null);
       if (circle) circle.setMap(null);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapLoaded, radioPermitido]);
 
   // Actualizar círculo cuando cambia el radio

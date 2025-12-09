@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Users, Clock, TrendingUp, Briefcase, Building2, CheckCircle, XCircle, User, UserPlus, X } from 'lucide-react';
+import { Users, TrendingUp, Building2, CheckCircle, AlertCircle, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Navbar from '../components/Navbar';
 import api from '../utils/api';
@@ -26,6 +26,7 @@ const AdminAreaDashboard = () => {
 
   useEffect(() => {
     cargarDatos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const cargarDatos = async () => {

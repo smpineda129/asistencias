@@ -14,10 +14,10 @@ const EncargadoTiempoReal = () => {
 
   useEffect(() => {
     cargarDatos();
-    // Actualizar cada 30 segundos
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const intervalo = setInterval(cargarDatos, 30000);
     return () => clearInterval(intervalo);
-  }, []);
+  }, []); // Actualizar cada 30 segundos
 
   const cargarDatos = async () => {
     try {

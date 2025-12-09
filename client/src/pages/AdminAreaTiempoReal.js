@@ -43,6 +43,7 @@ const AdminAreaTiempoReal = () => {
 
   useEffect(() => {
     cargarDatos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-refresh cada 10 segundos
@@ -54,6 +55,7 @@ const AdminAreaTiempoReal = () => {
     }, 10000); // 10 segundos
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefresh]);
 
   const handleRefresh = () => {
