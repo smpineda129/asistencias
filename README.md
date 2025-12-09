@@ -39,21 +39,12 @@ Sistema web completo para el control y registro de asistencia del personal con i
 - 🌈 **Paleta de colores** profesional y accesible
 - 🔔 **Notificaciones toast** para feedback inmediato
 
-### 🔐 Sistema Biométrico (NUEVO)
-- 👆 **Lector de Huellas** - Integración con DigitalPersona U.are.U 4500
-- 🔒 **Registro de Huellas** - Hasta 10 dedos por usuario
-- ⚡ **Verificación Rápida** - Marcación en menos de 2 segundos
-- 🖥️ **Terminal de Marcación** - Interfaz dedicada para control de acceso
-- 🔐 **Encriptación AES-256** - Templates biométricos seguros
-- 📊 **Estadísticas de Uso** - Monitoreo de huellas registradas
-
 ### 🔧 Características Técnicas
 - 📡 **API RESTful** documentada con Swagger
 - 🔒 **Seguridad** con bcrypt y JWT
 - 📧 **Sistema de correos** con Nodemailer (opcional)
 - 🗄️ **Base de datos** MongoDB con Mongoose
 - 🐳 **Docker ready** para MongoDB
-- 👆 **SDK Biométrico** DigitalPersona WebSDK
 
 ## 🛠️ Tecnologías
 
@@ -397,27 +388,9 @@ Este proyecto incluye documentación completa para diferentes aspectos:
   - Seguridad y monitoreo
   - CI/CD con GitHub Actions
   
-- **[GUIA_BIOMETRIA.md](./GUIA_BIOMETRIA.md)** - 🔐 Guía Completa del Sistema Biométrico
-  - Instalación del SDK DigitalPersona
-  - Configuración del lector de huellas
-  - Uso del sistema de registro
-  - Terminal de marcación
-  - API Reference completa
-  - Solución de problemas
-  - Seguridad y cumplimiento legal
-
-- **[INSTALACION_BIOMETRIA.md](./INSTALACION_BIOMETRIA.md)** - 🚀 Instalación Rápida
-  - Checklist paso a paso
-  - Configuración del hardware
-  - Setup del software
-  - Pruebas iniciales
-  - Modo kiosko para terminal
-
 - **[ESCALABILIDAD.md](./ESCALABILIDAD.md)** - Plan de escalabilidad y futuras funcionalidades
   - Arquitectura de microservicios
-  - Implementación de huellas dactilares
-  - Reconocimiento facial
-  - Aplicación móvil con biometría
+  - Aplicación móvil
   - Infraestructura escalable
   - Estimación de costos
   - Roadmap de implementación
@@ -473,16 +446,6 @@ La documentación interactiva de la API está disponible con Swagger UI:
 4. Exportar reportes en CSV
 5. Gestionar usuarios (solo admin)
 6. Ver gráficas de tendencias
-7. **NUEVO:** Gestionar huellas dactilares de usuarios
-8. **NUEVO:** Ver estadísticas de uso biométrico
-
-### Para Terminal de Marcación Biométrica
-1. Colocar dedo en el lector DigitalPersona 4500
-2. Sistema verifica automáticamente la huella
-3. Marca ingreso si no hay registro activo
-4. Marca salida si ya hay un ingreso registrado
-5. Muestra confirmación visual en pantalla
-6. Registra en actividad reciente
 
 ## 🔮 Próximas Funcionalidades
 
@@ -491,7 +454,6 @@ La documentación interactiva de la API está disponible con Swagger UI:
 - 📊 **Reportes avanzados** en PDF
 - 🔔 **Notificaciones push** en tiempo real
 - 🎨 **Temas personalizables** (modo oscuro)
-- 👤 **Reconocimiento facial** como alternativa biométrica
 
 ## 👨‍💻 Soporte y Contribución
 

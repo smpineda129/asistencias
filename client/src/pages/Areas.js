@@ -7,6 +7,7 @@ import api from '../utils/api';
 const Areas = () => {
   const [areas, setAreas] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
+  const [inHousesPorArea, setInHousesPorArea] = useState({});
   const [cargando, setCargando] = useState(true);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [areaEditando, setAreaEditando] = useState(null);
@@ -28,8 +29,26 @@ const Areas = () => {
         api.get('/areas'),
         api.get('/users')
       ]);
-      setAreas(areasRes.data.areas || []);
+      
+      const areasData = areasRes.data.areas || [];
+      setAreas(areasData);
       setUsuarios(usuariosRes.data.usuarios || []);
+      
+      // Cargar InHouses por cada área
+      const inHousesCount = {};
+      await Promise.all(
+        areasData.map(async (area) => {
+          try {
+            const response = await api.get(`/areas/${area._id}/inhouses`);
+            inHousesCount[area._id] = response.data.inHouses?.length || 0;
+          } catch (error) {
+            console.error(`Error al cargar InHouses del área ${area._id}:`, error);
+            inHousesCount[area._id] = 0;
+          }
+        })
+      );
+      setInHousesPorArea(inHousesCount);
+      
     } catch (error) {
       console.error('Error al cargar datos:', error);
       toast.error('Error al cargar datos');
@@ -173,12 +192,21 @@ const Areas = () => {
                 </div>
 
                 <div className="mt-4 pt-4 border-t">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Briefcase size={16} className="mr-2" />
+                      <span className="font-semibold">In Houses:</span>
+                    </div>
+                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                      {inHousesPorArea[area._id] || 0}
+                    </span>
+                  </div>
                   <button
                     onClick={() => window.location.href = `/areas/${area._id}/inhouses`}
                     className="w-full btn-outline flex items-center justify-center"
                   >
                     <Briefcase size={18} className="mr-2" />
-                    Ver In Houses
+                    Gestionar In Houses
                   </button>
                 </div>
               </div>
@@ -258,7 +286,7 @@ const Areas = () => {
                     required
                   >
                     <option value="">Selecciona un administrador</option>
-                    {usuarios.map((usuario) => (
+                    {usuarios.filter(u => u.rol === 'admin_area').map((usuario) => (
                       <option key={usuario._id} value={usuario._id}>
                         {usuario.nombre} {usuario.apellidos} - {usuario.correo}
                       </option>

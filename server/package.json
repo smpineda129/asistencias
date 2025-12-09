@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "npx nodemon index.js",
-    "seed": "node scripts/seedData.js"
+    "seed": "node scripts/seedData.js",
+    "init-db": "node scripts/init-db.js"
   },
   "keywords": [],
   "author": "",

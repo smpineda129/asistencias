@@ -25,6 +25,10 @@ const Login = () => {
     if (autenticado && usuario) {
       if (usuario.rol === 'admin' || usuario.rol === 'ceo') {
         navigate('/admin/dashboard');
+      } else if (usuario.rol === 'encargado_inhouse') {
+        navigate('/encargado/dashboard');
+      } else if (usuario.rol === 'admin_area') {
+        navigate('/admin-area/dashboard');
       } else {
         navigate('/user/home');
       }

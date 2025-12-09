@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema({
   },
   rol: {
     type: String,
-    enum: ['admin', 'user', 'ceo', 'admin_area'],
+    enum: ['admin', 'user', 'ceo', 'admin_area', 'encargado_inhouse'],
     default: 'user',
     required: true
   },
@@ -41,6 +41,12 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'InHouse'
   }],
+  // InHouse del cual es encargado (solo uno)
+  inHouseEncargado: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'InHouse',
+    default: null
+  },
   password: {
     type: String,
     required: [true, 'La contraseña es obligatoria'],

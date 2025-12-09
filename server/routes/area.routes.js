@@ -9,7 +9,7 @@ const {
   obtenerEstadisticasArea,
   obtenerInHousesArea
 } = require('../controllers/area.controller');
-const { protegerRuta, soloAdmin, verificarRol } = require('../middlewares/auth.middleware');
+const { protegerRuta, soloAdmin, adminOAdminArea, verificarRol } = require('../middlewares/auth.middleware');
 
 // Todas las rutas requieren autenticación
 router.use(protegerRuta);
@@ -72,7 +72,7 @@ router.post('/', soloAdmin, crearArea);
  *       200:
  *         description: Lista de áreas
  */
-router.get('/', verificarRol('admin', 'ceo'), obtenerAreas);
+router.get('/', verificarRol('admin', 'ceo', 'admin_area'), obtenerAreas);
 
 /**
  * @swagger

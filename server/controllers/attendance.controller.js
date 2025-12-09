@@ -1,5 +1,6 @@
 const Attendance = require('../models/Attendance.model');
 const User = require('../models/User.model');
+const InHouse = require('../models/InHouse');
 
 /**
  * Obtener todas las asistencias con filtros
@@ -197,6 +198,7 @@ const obtenerAsistenciasUsuario = async (req, res) => {
     
     let query = Attendance.find({ usuario: usuarioId })
       .populate('usuario', 'nombre apellidos correo area')
+      .populate('inHouse', 'nombre')
       .sort({ fecha: -1 });
     
     if (limite) {
@@ -331,13 +333,41 @@ const eliminarAsistencia = async (req, res) => {
 const marcarIngreso = async (req, res) => {
   try {
     const usuarioId = req.usuario._id;
-    const { inHouseId } = req.body;
+    const { inHouseId, lat, lng } = req.body;
     
     // Validar que se proporcione el inHouseId
     if (!inHouseId) {
       return res.status(400).json({
         success: false,
         message: 'Debes seleccionar un In House para marcar ingreso'
+      });
+    }
+
+    // Validar coordenadas
+    if (!lat || !lng) {
+      return res.status(400).json({
+        success: false,
+        message: 'Se requiere tu ubicación para marcar asistencia'
+      });
+    }
+    
+    // Obtener el InHouse
+    const inHouse = await InHouse.findById(inHouseId);
+    if (!inHouse) {
+      return res.status(404).json({
+        success: false,
+        message: 'In House no encontrado'
+      });
+    }
+
+    // Validar distancia usando Haversine
+    const validacion = inHouse.validarDistancia(lat, lng);
+    if (!validacion.dentroDelRango) {
+      return res.status(403).json({
+        success: false,
+        message: `Estás muy lejos del In House. Distancia: ${validacion.distancia}m (máximo permitido: ${validacion.radioPermitido}m)`,
+        distancia: validacion.distancia,
+        radioPermitido: validacion.radioPermitido
       });
     }
     
@@ -376,7 +406,7 @@ const marcarIngreso = async (req, res) => {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hour12: false
+      hour12: true
     });
     
     const nuevaAsistencia = await Attendance.create({
@@ -385,6 +415,10 @@ const marcarIngreso = async (req, res) => {
       fecha: ahora,
       horaIngreso,
       estado: 'activo',
+      ubicacion: {
+        lat,
+        lng
+      },
       userAgent: req.headers['user-agent'] || '',
       ip: req.ip || req.connection.remoteAddress || ''
     });
@@ -396,7 +430,8 @@ const marcarIngreso = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Ingreso marcado exitosamente',
-      asistencia: asistenciaPopulada
+      asistencia: asistenciaPopulada,
+      distancia: validacion.distancia
     });
     
   } catch (error) {
@@ -643,6 +678,135 @@ const obtenerEstadoTiempoReal = async (req, res) => {
   }
 };
 
+/**
+ * Obtener estado en tiempo real de un área específica
+ * GET /api/attendance/estado-tiempo-real-area/:areaId
+ */
+const obtenerEstadoTiempoRealArea = async (req, res) => {
+  try {
+    const { areaId } = req.params;
+    
+    // Obtener todos los usuarios activos del área
+    const todosLosUsuarios = await User.find({ 
+      activo: true, 
+      area: areaId,
+      rol: { $ne: 'admin' } 
+    })
+      .select('nombre apellidos correo area rol')
+      .populate('area', 'nombre')
+      .sort({ nombre: 1 });
+    
+    // Obtener asistencias activas de hoy
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const finDia = new Date(hoy);
+    finDia.setHours(23, 59, 59, 999);
+    
+    const usuariosIds = todosLosUsuarios.map(u => u._id);
+    
+    const asistenciasActivas = await Attendance.find({
+      fecha: { $gte: hoy, $lte: finDia },
+      estado: 'activo',
+      usuario: { $in: usuariosIds }
+    }).populate('usuario', 'nombre apellidos correo area rol');
+    
+    // Obtener TODAS las asistencias de hoy del área
+    const todasAsistenciasHoy = await Attendance.find({
+      fecha: { $gte: hoy, $lte: finDia },
+      usuario: { $in: usuariosIds }
+    }).populate('usuario', 'nombre apellidos correo area rol');
+    
+    // Contar ingresos por usuario
+    const ingresosPorUsuario = new Map();
+    todasAsistenciasHoy.forEach(asistencia => {
+      if (asistencia.usuario) {
+        const usuarioId = asistencia.usuario._id.toString();
+        ingresosPorUsuario.set(usuarioId, (ingresosPorUsuario.get(usuarioId) || 0) + 1);
+      }
+    });
+    
+    // Crear mapa de usuarios con ingreso activo
+    const usuariosActivosMap = new Map();
+    asistenciasActivas.forEach(asistencia => {
+      if (asistencia.usuario) {
+        usuariosActivosMap.set(asistencia.usuario._id.toString(), {
+          usuario: asistencia.usuario,
+          asistencia: {
+            id: asistencia._id,
+            horaIngreso: asistencia.horaIngreso,
+            fecha: asistencia.fecha
+          }
+        });
+      }
+    });
+    
+    // Clasificar usuarios
+    const usuariosActivos = [];
+    const usuariosInactivos = [];
+    
+    todosLosUsuarios.forEach(usuario => {
+      const usuarioId = usuario._id.toString();
+      const totalIngresos = ingresosPorUsuario.get(usuarioId) || 0;
+      
+      if (usuariosActivosMap.has(usuarioId)) {
+        const data = usuariosActivosMap.get(usuarioId);
+        usuariosActivos.push({
+          id: usuario._id,
+          nombre: usuario.nombre,
+          apellidos: usuario.apellidos,
+          nombreCompleto: `${usuario.nombre} ${usuario.apellidos}`,
+          correo: usuario.correo,
+          area: usuario.area?.nombre || 'Sin área',
+          rol: usuario.rol,
+          estado: 'activo',
+          horaIngreso: data.asistencia.horaIngreso,
+          asistenciaId: data.asistencia.id,
+          totalIngresosHoy: totalIngresos
+        });
+      } else {
+        usuariosInactivos.push({
+          id: usuario._id,
+          nombre: usuario.nombre,
+          apellidos: usuario.apellidos,
+          nombreCompleto: `${usuario.nombre} ${usuario.apellidos}`,
+          correo: usuario.correo,
+          area: usuario.area?.nombre || 'Sin área',
+          rol: usuario.rol,
+          estado: 'inactivo',
+          totalIngresosHoy: totalIngresos
+        });
+      }
+    });
+    
+    // Total de ingresos del día
+    const totalIngresosHoy = todasAsistenciasHoy.length;
+    
+    res.status(200).json({
+      success: true,
+      fecha: new Date(),
+      resumen: {
+        totalUsuarios: todosLosUsuarios.length,
+        usuariosActivos: usuariosActivos.length,
+        usuariosInactivos: usuariosInactivos.length,
+        totalIngresosHoy: totalIngresosHoy,
+        porcentajeActivos: todosLosUsuarios.length > 0 
+          ? ((usuariosActivos.length / todosLosUsuarios.length) * 100).toFixed(1)
+          : 0
+      },
+      usuariosActivos,
+      usuariosInactivos
+    });
+    
+  } catch (error) {
+    console.error('Error al obtener estado en tiempo real del área:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener estado en tiempo real del área',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   obtenerAsistencias,
   obtenerAsistenciasPorRango,
@@ -653,5 +817,6 @@ module.exports = {
   marcarIngreso,
   marcarSalida,
   obtenerAsistenciaActiva,
-  obtenerEstadoTiempoReal
+  obtenerEstadoTiempoReal,
+  obtenerEstadoTiempoRealArea
 };

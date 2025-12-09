@@ -40,7 +40,16 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error al verificar autenticación:', error);
-      cerrarSesion();
+      
+      // Si el error es de JWT inválido, limpiar localStorage silenciosamente
+      if (error.response?.status === 401 || error.message?.includes('jwt')) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('usuario');
+        setUsuario(null);
+        setAutenticado(false);
+      } else {
+        cerrarSesion();
+      }
     } finally {
       setCargando(false);
     }
@@ -51,7 +60,7 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.login({ correo, password });
       
       if (response.data.success) {
-        const { token, usuario, asistencia } = response.data;
+        const { token, usuario } = response.data;
         
         // Guardar en localStorage
         localStorage.setItem('token', token);
@@ -65,12 +74,6 @@ export const AuthProvider = ({ children }) => {
         toast.success(`¡Bienvenido/a ${usuario.nombreCompleto}!`, {
           duration: 4000,
           icon: '👋'
-        });
-        
-        // Mostrar confirmación de asistencia
-        toast.success(`Asistencia registrada: ${asistencia.hora}`, {
-          duration: 5000,
-          icon: '✅'
         });
         
         return { success: true, usuario };
@@ -103,6 +106,14 @@ export const AuthProvider = ({ children }) => {
     return usuario?.rol === 'user';
   };
 
+  const esEncargado = () => {
+    return usuario?.rol === 'encargado_inhouse';
+  };
+
+  const esAdminArea = () => {
+    return usuario?.rol === 'admin_area';
+  };
+
   const value = {
     usuario,
     autenticado,
@@ -111,7 +122,9 @@ export const AuthProvider = ({ children }) => {
     cerrarSesion,
     esAdmin,
     esCEO,
-    esUsuario
+    esUsuario,
+    esEncargado,
+    esAdminArea
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

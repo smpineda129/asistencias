@@ -418,15 +418,16 @@ const Usuarios = () => {
                 <div>
                   <label className="label-field">Rol *</label>
                   <select
-                    name="rol"
                     value={formData.rol}
-                    onChange={handleInputChange}
+                    onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
                     className="input-field"
                     required
                   >
                     <option value="user">Usuario</option>
                     <option value="ceo">CEO</option>
                     <option value="admin">Administrador</option>
+                    <option value="admin_area">Administrador de Área</option>
+                    <option value="encargado_inhouse">Encargado de InHouse</option>
                   </select>
                 </div>
 

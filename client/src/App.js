@@ -13,8 +13,11 @@ import TiempoReal from './pages/TiempoReal';
 import Unauthorized from './pages/Unauthorized';
 import Areas from './pages/Areas';
 import InHouses from './pages/InHouses';
-import BiometricManagement from './pages/BiometricManagement';
-import BiometricTerminal from './pages/BiometricTerminal';
+import InHousesAdmin from './pages/InHousesAdmin';
+import EncargadoDashboard from './pages/EncargadoDashboard';
+import EncargadoTiempoReal from './pages/EncargadoTiempoReal';
+import AdminAreaDashboard from './pages/AdminAreaDashboard';
+import AdminAreaTiempoReal from './pages/AdminAreaTiempoReal';
 
 function App() {
   return (
@@ -101,16 +104,13 @@ function App() {
             />
 
             <Route
-              path="/admin/biometric"
+              path="/inhouses"
               element={
-                <ProtectedRoute rolesPermitidos={['admin', 'admin_area']}>
-                  <BiometricManagement />
+                <ProtectedRoute rolesPermitidos={['admin']}>
+                  <InHousesAdmin />
                 </ProtectedRoute>
               }
             />
-
-            {/* Ruta pública para terminal de marcación biométrica */}
-            <Route path="/terminal" element={<BiometricTerminal />} />
 
             {/* Ruta protegida para usuarios normales */}
             <Route
@@ -118,6 +118,44 @@ function App() {
               element={
                 <ProtectedRoute rolesPermitidos={['user']}>
                   <UserHome />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Rutas protegidas para encargados de InHouse */}
+            <Route
+              path="/encargado/dashboard"
+              element={
+                <ProtectedRoute rolesPermitidos={['encargado_inhouse']}>
+                  <EncargadoDashboard />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/encargado/tiempo-real"
+              element={
+                <ProtectedRoute rolesPermitidos={['encargado_inhouse']}>
+                  <EncargadoTiempoReal />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Rutas protegidas para administradores de área */}
+            <Route
+              path="/admin-area/dashboard"
+              element={
+                <ProtectedRoute rolesPermitidos={['admin_area']}>
+                  <AdminAreaDashboard />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/admin-area/tiempo-real"
+              element={
+                <ProtectedRoute rolesPermitidos={['admin_area']}>
+                  <AdminAreaTiempoReal />
                 </ProtectedRoute>
               }
             />

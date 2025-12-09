@@ -29,6 +29,14 @@ const attendanceSchema = new mongoose.Schema({
     enum: ['activo', 'completado'],
     default: 'activo'
   },
+  ubicacion: {
+    lat: {
+      type: Number
+    },
+    lng: {
+      type: Number
+    }
+  },
   userAgent: {
     type: String,
     default: ''

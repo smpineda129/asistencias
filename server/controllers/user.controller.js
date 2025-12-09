@@ -45,6 +45,17 @@ const obtenerUsuarios = async (req, res) => {
  */
 const obtenerUsuarioPorId = async (req, res) => {
   try {
+    // Verificar que el usuario solo pueda ver su propia información (a menos que sea admin)
+    const esAdmin = req.usuario.rol === 'admin' || req.usuario.rol === 'ceo';
+    const esMismoUsuario = req.usuario.id === req.params.id;
+    
+    if (!esAdmin && !esMismoUsuario) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permiso para ver este usuario'
+      });
+    }
+    
     const usuario = await User.findById(req.params.id)
       .select('-password')
       .populate('area', 'nombre')

@@ -88,7 +88,8 @@ const login = async (req, res) => {
         correo: usuario.correo,
         celular: usuario.celular,
         area: usuario.area,
-        rol: usuario.rol
+        rol: usuario.rol,
+        inHouseEncargado: usuario.inHouseEncargado
       }
     });
     

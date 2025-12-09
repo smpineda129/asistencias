@@ -86,8 +86,66 @@ const soloAdmin = (req, res, next) => {
   next();
 };
 
+/**
+ * Middleware para administradores y administradores de área
+ */
+const adminOAdminArea = (req, res, next) => {
+  if (!req.usuario || !['admin', 'admin_area'].includes(req.usuario.rol)) {
+    return res.status(403).json({
+      success: false,
+      message: 'Acceso denegado - Se requiere rol de administrador'
+    });
+  }
+  next();
+};
+
+/**
+ * Middleware para verificar si el usuario es encargado del InHouse
+ */
+const esEncargadoInHouse = async (req, res, next) => {
+  try {
+    const InHouse = require('../models/InHouse');
+    const inHouseId = req.params.id || req.params.inHouseId;
+    
+    if (!inHouseId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de InHouse no proporcionado'
+      });
+    }
+    
+    const inHouse = await InHouse.findById(inHouseId);
+    
+    if (!inHouse) {
+      return res.status(404).json({
+        success: false,
+        message: 'InHouse no encontrado'
+      });
+    }
+    
+    // Verificar si el usuario es encargado de este InHouse
+    if (inHouse.encargado.toString() !== req.usuario._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Acceso denegado - No eres encargado de este InHouse'
+      });
+    }
+    
+    req.inHouse = inHouse;
+    next();
+  } catch (error) {
+    console.error('Error al verificar encargado:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al verificar permisos'
+    });
+  }
+};
+
 module.exports = {
   protegerRuta,
   verificarRol,
-  soloAdmin
+  soloAdmin,
+  adminOAdminArea,
+  esEncargadoInHouse
 };

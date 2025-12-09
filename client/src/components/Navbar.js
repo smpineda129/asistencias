@@ -11,11 +11,12 @@ import {
   X,
   Activity,
   Building2,
-  Fingerprint
+  Fingerprint,
+  Briefcase
 } from 'lucide-react';
 
 const Navbar = () => {
-  const { usuario, cerrarSesion, esAdmin, esCEO } = useAuth();
+  const { usuario, cerrarSesion, esAdmin, esCEO, esEncargado, esAdminArea } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuAbierto, setMenuAbierto] = React.useState(false);
@@ -78,11 +79,36 @@ const Navbar = () => {
                     <NavLink to="/areas" icon={Building2}>
                       Áreas
                     </NavLink>
-                    <NavLink to="/admin/biometric" icon={Fingerprint}>
-                      Biometría
+                    <NavLink to="/inhouses" icon={Briefcase}>
+                      In Houses
                     </NavLink>
                   </>
                 )}
+              </>
+            )}
+            
+            {esEncargado() && (
+              <>
+                <NavLink to="/encargado/dashboard" icon={LayoutDashboard}>
+                  Dashboard
+                </NavLink>
+                <NavLink to="/encargado/tiempo-real" icon={Activity}>
+                  Tiempo Real
+                </NavLink>
+              </>
+            )}
+            
+            {esAdminArea() && (
+              <>
+                <NavLink to="/admin-area/dashboard" icon={LayoutDashboard}>
+                  Dashboard
+                </NavLink>
+                <NavLink to="/admin-area/tiempo-real" icon={Activity}>
+                  Tiempo Real
+                </NavLink>
+                <NavLink to={`/areas/${usuario.area}/inhouses`} icon={Briefcase}>
+                  In Houses
+                </NavLink>
               </>
             )}
 
@@ -136,11 +162,39 @@ const Navbar = () => {
                       <NavLink to="/areas" icon={Building2}>
                         Áreas
                       </NavLink>
+                      <NavLink to="/inhouses" icon={Briefcase}>
+                        In Houses
+                      </NavLink>
                       <NavLink to="/admin/biometric" icon={Fingerprint}>
                         Biometría
                       </NavLink>
                     </>
                   )}
+                </>
+              )}
+              
+              {esEncargado() && (
+                <>
+                  <NavLink to="/encargado/dashboard" icon={LayoutDashboard}>
+                    Dashboard
+                  </NavLink>
+                  <NavLink to="/encargado/tiempo-real" icon={Activity}>
+                    Tiempo Real
+                  </NavLink>
+                </>
+              )}
+              
+              {esAdminArea() && (
+                <>
+                  <NavLink to="/admin-area/dashboard" icon={LayoutDashboard}>
+                    Dashboard
+                  </NavLink>
+                  <NavLink to="/admin-area/tiempo-real" icon={Activity}>
+                    Tiempo Real
+                  </NavLink>
+                  <NavLink to={`/areas/${usuario.area}/inhouses`} icon={Briefcase}>
+                    In Houses
+                  </NavLink>
                 </>
               )}
 

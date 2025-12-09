@@ -1,0 +1,107 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main  # Cambia a 'master' si usas esa rama
+      - production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v3
+
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: 📦 Install dependencies (Server)
+      run: |
+        cd server
+        npm ci --production
+
+    - name: 📦 Install dependencies (Client)
+      run: |
+        cd client
+        npm ci
+
+    - name: 🏗️ Build React app
+      run: |
+        cd client
+        npm run build
+
+    - name: 🔑 Configure SSH
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      run: |
+        mkdir -p ~/.ssh
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ec2-52-90-132-79.compute-1.amazonaws.com >> ~/.ssh/known_hosts
+
+    - name: 🚀 Deploy to EC2
+      env:
+        AWS_HOST: ec2-52-90-132-79.compute-1.amazonaws.com
+        AWS_USER: ec2-user
+      run: |
+        # Crear directorio temporal para deployment
+        ssh -i ~/.ssh/id_rsa ${AWS_USER}@${AWS_HOST} "mkdir -p ~/sistema-asistencia-temp"
+        
+        # Copiar archivos al servidor (excluyendo node_modules y .git)
+        rsync -avz --delete \
+          --exclude 'node_modules' \
+          --exclude '.git' \
+          --exclude '.github' \
+          --exclude 'backups' \
+          --exclude '.env' \
+          -e "ssh -i ~/.ssh/id_rsa" \
+          ./ ${AWS_USER}@${AWS_HOST}:~/sistema-asistencia-temp/
+        
+        # Ejecutar comandos en el servidor
+        ssh -i ~/.ssh/id_rsa ${AWS_USER}@${AWS_HOST} << 'ENDSSH'
+          # Backup del directorio actual
+          if [ -d ~/sistema-asistencia ]; then
+            mv ~/sistema-asistencia ~/sistema-asistencia-backup-$(date +%Y%m%d_%H%M%S)
+          fi
+          
+          # Mover nueva versión
+          mv ~/sistema-asistencia-temp ~/sistema-asistencia
+          
+          # Instalar dependencias del servidor
+          cd ~/sistema-asistencia/server
+          npm install --production
+          
+          # Reiniciar aplicaciones con PM2
+          pm2 restart asistencia-backend || pm2 start index.js --name asistencia-backend
+          pm2 restart asistencia-frontend || pm2 serve ../client/build 3000 --name asistencia-frontend --spa
+          
+          # Guardar configuración de PM2
+          pm2 save
+          
+          # Limpiar backups antiguos (mantener solo los últimos 3)
+          cd ~
+          ls -dt sistema-asistencia-backup-* | tail -n +4 | xargs rm -rf
+          
+          echo "✅ Deployment completado exitosamente!"
+        ENDSSH
+
+    - name: 🧹 Cleanup
+      if: always()
+      run: |
+        rm -f ~/.ssh/id_rsa
+
+    - name: ✅ Deployment Success
+      if: success()
+      run: |
+        echo "🎉 Aplicación desplegada exitosamente en AWS!"
+        echo "🌐 Frontend: http://ec2-52-90-132-79.compute-1.amazonaws.com:3000"
+        echo "🔧 Backend: http://ec2-52-90-132-79.compute-1.amazonaws.com:5000"
+
+    - name: ❌ Deployment Failed
+      if: failure()
+      run: |
+        echo "❌ El deployment falló. Revisa los logs arriba."

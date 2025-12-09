@@ -49,7 +49,6 @@ cp server/.env.example server/.env
 # Editar server/.env y configurar:
 # - MONGO_URI
 # - JWT_SECRET
-# - BIOMETRIC_ENCRYPTION_KEY (para el sistema de huellas)
 ```
 
 ---
@@ -84,7 +83,6 @@ Una vez levantado:
 - **Frontend:** http://localhost:3000
 - **Backend API:** http://localhost:5001/api
 - **Swagger Docs:** http://localhost:5001/api-docs
-- **Terminal Biométrico:** http://localhost:3000/terminal
 
 ---
 
@@ -107,15 +105,6 @@ Si ejecutaste el script de seed (`npm run seed` en server/):
 ---
 
 ## ⚠️ Advertencias Comunes
-
-### "BIOMETRIC_ENCRYPTION_KEY no encontrado"
-Es normal si no has configurado el sistema biométrico aún. El sistema funciona igual, solo usa una clave por defecto (no segura para producción).
-
-Para arreglarlo:
-```bash
-# En server/.env agregar:
-BIOMETRIC_ENCRYPTION_KEY=tu-clave-super-secreta-de-32-caracteres-o-mas
-```
 
 ### Warnings de React
 Los warnings de ESLint sobre `useEffect` dependencies son normales y no afectan el funcionamiento. Son solo sugerencias de optimización.

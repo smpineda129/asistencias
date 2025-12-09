@@ -8,7 +8,7 @@ const {
   eliminarUsuario,
   obtenerUsuariosPorRol
 } = require('../controllers/user.controller');
-const { protegerRuta, soloAdmin } = require('../middlewares/auth.middleware');
+const { protegerRuta, soloAdmin, adminOAdminArea } = require('../middlewares/auth.middleware');
 
 // Todas las rutas requieren autenticación
 router.use(protegerRuta);
@@ -42,7 +42,7 @@ router.use(protegerRuta);
  *                   items:
  *                     $ref: '#/components/schemas/Usuario'
  */
-router.get('/', soloAdmin, obtenerUsuarios);
+router.get('/', adminOAdminArea, obtenerUsuarios);
 
 /**
  * @route   GET /api/users/rol/:rol
@@ -53,10 +53,10 @@ router.get('/rol/:rol', soloAdmin, obtenerUsuariosPorRol);
 
 /**
  * @route   GET /api/users/:id
- * @desc    Obtener usuario por ID (solo admin)
- * @access  Private/Admin
+ * @desc    Obtener usuario por ID (admin o el mismo usuario)
+ * @access  Private
  */
-router.get('/:id', soloAdmin, obtenerUsuarioPorId);
+router.get('/:id', protegerRuta, obtenerUsuarioPorId);
 
 /**
  * @swagger

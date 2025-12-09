@@ -7,28 +7,36 @@ const inHouseSchema = new mongoose.Schema({
     required: [true, 'El nombre de la empresa es requerido'],
     trim: true
   },
-  area: {
+  areas: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Area',
-    required: [true, 'El área es requerida']
+    ref: 'Area'
+  }],
+  // Geolocalización
+  ubicacion: {
+    direccion: {
+      type: String,
+      trim: true
+    },
+    coordenadas: {
+      lat: {
+        type: Number,
+        required: [true, 'La latitud es requerida']
+      },
+      lng: {
+        type: Number,
+        required: [true, 'La longitud es requerida']
+      }
+    },
+    radioPermitido: {
+      type: Number,
+      default: 100 // metros
+    }
   },
+  // Encargado del InHouse (usuario existente)
   encargado: {
-    type: String,
-    required: [true, 'El nombre del encargado es requerido'],
-    trim: true
-  },
-  correo: {
-    type: String,
-    required: [true, 'El correo es requerido'],
-    lowercase: true,
-    trim: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Por favor ingrese un correo válido']
-  },
-  password: {
-    type: String,
-    required: [true, 'La contraseña es requerida'],
-    minlength: 6,
-    select: false // No devolver password por defecto
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'El encargado es requerido']
   },
   usuariosAsignados: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -79,9 +87,10 @@ inHouseSchema.methods.compararPassword = async function(passwordIngresado) {
 };
 
 // Índices para búsquedas rápidas
-inHouseSchema.index({ area: 1 });
+inHouseSchema.index({ areas: 1 });
 inHouseSchema.index({ correo: 1 }, { unique: true });
 inHouseSchema.index({ activo: 1 });
+inHouseSchema.index({ 'ubicacion.coordenadas': '2dsphere' }); // Índice geoespacial
 
 // Virtual para contar usuarios asignados
 inHouseSchema.virtual('totalUsuariosAsignados').get(function() {
@@ -128,6 +137,28 @@ inHouseSchema.methods.obtenerEstadisticas = async function() {
     usuariosActivosHoy: usuariosActivos,
     nombre: this.nombre,
     encargado: this.encargado
+  };
+};
+
+// Método para validar distancia usando fórmula de Haversine
+inHouseSchema.methods.validarDistancia = function(lat, lng) {
+  const R = 6371e3; // Radio de la Tierra en metros
+  const φ1 = this.ubicacion.coordenadas.lat * Math.PI / 180;
+  const φ2 = lat * Math.PI / 180;
+  const Δφ = (lat - this.ubicacion.coordenadas.lat) * Math.PI / 180;
+  const Δλ = (lng - this.ubicacion.coordenadas.lng) * Math.PI / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  const distancia = R * c; // Distancia en metros
+
+  return {
+    dentroDelRango: distancia <= this.ubicacion.radioPermitido,
+    distancia: Math.round(distancia),
+    radioPermitido: this.ubicacion.radioPermitido
   };
 };
 

@@ -24,7 +24,6 @@ const userRoutes = require('./routes/user.routes');
 const attendanceRoutes = require('./routes/attendance.routes');
 const areaRoutes = require('./routes/area.routes');
 const inhouseRoutes = require('./routes/inhouse.routes');
-const biometricRoutes = require('./routes/biometric.routes');
 
 // Usar rutas
 app.use('/api/auth', authRoutes);
@@ -32,7 +31,6 @@ app.use('/api/users', userRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/areas', areaRoutes);
 app.use('/api/inhouses', inhouseRoutes);
-app.use('/api/biometric', biometricRoutes);
 
 // Documentación Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {

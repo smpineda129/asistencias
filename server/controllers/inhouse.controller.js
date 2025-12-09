@@ -9,37 +9,62 @@ const jwt = require('jsonwebtoken');
 // @access  Private/Admin/AdminArea
 exports.crearInHouse = async (req, res) => {
   try {
-    const { nombre, area, encargado, correo, password, permisos } = req.body;
+    const { nombre, areas, encargado, ubicacion } = req.body;
 
-    // Verificar correo único
-    const inHouseExistente = await InHouse.findOne({ correo });
-    if (inHouseExistente) {
+    // Validar que se proporcionen áreas
+    if (!areas || areas.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'El correo ya está registrado'
+        message: 'Debe asignar al menos un área'
       });
     }
 
-    // Encriptar contraseña
-    const salt = await bcrypt.genSalt(10);
-    const passwordEncriptado = await bcrypt.hash(password, salt);
+    // Validar coordenadas
+    if (!ubicacion || !ubicacion.coordenadas || !ubicacion.coordenadas.lat || !ubicacion.coordenadas.lng) {
+      return res.status(400).json({
+        success: false,
+        message: 'Las coordenadas de ubicación son requeridas'
+      });
+    }
+
+    // Validar que el encargado exista
+    if (!encargado) {
+      return res.status(400).json({
+        success: false,
+        message: 'Debe asignar un encargado'
+      });
+    }
+
+    const usuarioEncargado = await User.findById(encargado);
+    if (!usuarioEncargado) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario encargado no encontrado'
+      });
+    }
 
     const inHouse = await InHouse.create({
       nombre,
-      area,
+      areas,
       encargado,
-      correo,
-      password: passwordEncriptado,
-      permisos: permisos || {
-        verTiempoReal: true,
-        verHistorial: true,
-        exportarReportes: false
+      ubicacion: {
+        direccion: ubicacion.direccion || '',
+        coordenadas: {
+          lat: ubicacion.coordenadas.lat,
+          lng: ubicacion.coordenadas.lng
+        },
+        radioPermitido: ubicacion.radioPermitido || 100
       }
     });
 
-    // No devolver password
-    const inHouseResponse = inHouse.toObject();
-    delete inHouseResponse.password;
+    // Actualizar el usuario para que sea encargado de este InHouse
+    usuarioEncargado.rol = 'encargado_inhouse';
+    usuarioEncargado.inHouseEncargado = inHouse._id;
+    await usuarioEncargado.save();
+
+    const inHouseResponse = await InHouse.findById(inHouse._id)
+      .populate('encargado', 'nombre apellidos correo')
+      .populate('areas', 'nombre codigo');
 
     res.status(201).json({
       success: true,
@@ -66,7 +91,7 @@ exports.loginInHouse = async (req, res) => {
     // Buscar In House con password
     const inHouse = await InHouse.findOne({ correo, activo: true })
       .select('+password')
-      .populate('area', 'nombre codigo');
+      .populate('areas', 'nombre codigo');
 
     if (!inHouse) {
       return res.status(401).json({
@@ -89,7 +114,7 @@ exports.loginInHouse = async (req, res) => {
       { 
         id: inHouse._id, 
         tipo: 'inhouse',
-        area: inHouse.area._id
+        areas: inHouse.areas.map(a => a._id)
       },
       process.env.JWT_SECRET,
       { expiresIn: '30d' }
@@ -123,11 +148,12 @@ exports.obtenerInHouses = async (req, res) => {
     const { area, activo } = req.query;
     const filtro = {};
 
-    if (area) filtro.area = area;
+    if (area) filtro.areas = area;
     if (activo !== undefined) filtro.activo = activo === 'true';
 
     const inHouses = await InHouse.find(filtro)
-      .populate('area', 'nombre codigo')
+      .populate('encargado', 'nombre apellidos correo')
+      .populate('areas', 'nombre codigo')
       .populate('usuariosAsignados', 'nombre apellidos correo')
       .sort({ nombre: 1 });
 
@@ -152,7 +178,8 @@ exports.obtenerInHouses = async (req, res) => {
 exports.obtenerInHousePorId = async (req, res) => {
   try {
     const inHouse = await InHouse.findById(req.params.id)
-      .populate('area', 'nombre codigo descripcion')
+      .populate('encargado', 'nombre apellidos correo')
+      .populate('areas', 'nombre codigo descripcion')
       .populate('usuariosAsignados', 'nombre apellidos correo celular');
 
     if (!inHouse) {
@@ -181,7 +208,7 @@ exports.obtenerInHousePorId = async (req, res) => {
 // @access  Private/Admin/AdminArea
 exports.actualizarInHouse = async (req, res) => {
   try {
-    const { nombre, encargado, correo, password, permisos, activo } = req.body;
+    const { nombre, areas, encargado, activo, ubicacion } = req.body;
 
     const inHouse = await InHouse.findById(req.params.id);
     if (!inHouse) {
@@ -191,23 +218,58 @@ exports.actualizarInHouse = async (req, res) => {
       });
     }
 
+    // Guardar encargado anterior
+    const encargadoAnterior = inHouse.encargado;
+
     // Actualizar campos
     if (nombre) inHouse.nombre = nombre;
-    if (encargado) inHouse.encargado = encargado;
-    if (correo) inHouse.correo = correo;
-    if (permisos) inHouse.permisos = { ...inHouse.permisos, ...permisos };
+    if (areas) inHouse.areas = areas;
     if (activo !== undefined) inHouse.activo = activo;
+    
+    // Actualizar encargado
+    if (encargado && encargado !== encargadoAnterior?.toString()) {
+      // Validar que el nuevo encargado exista
+      const nuevoEncargado = await User.findById(encargado);
+      if (!nuevoEncargado) {
+        return res.status(404).json({
+          success: false,
+          message: 'Usuario encargado no encontrado'
+        });
+      }
 
-    // Actualizar contraseña si se proporciona
-    if (password) {
-      const salt = await bcrypt.genSalt(10);
-      inHouse.password = await bcrypt.hash(password, salt);
+      // Remover rol del encargado anterior si existe
+      if (encargadoAnterior) {
+        const usuarioAnterior = await User.findById(encargadoAnterior);
+        if (usuarioAnterior && usuarioAnterior.rol === 'encargado_inhouse') {
+          usuarioAnterior.rol = 'user';
+          usuarioAnterior.inHouseEncargado = null;
+          await usuarioAnterior.save();
+        }
+      }
+
+      // Asignar rol al nuevo encargado
+      nuevoEncargado.rol = 'encargado_inhouse';
+      nuevoEncargado.inHouseEncargado = inHouse._id;
+      await nuevoEncargado.save();
+
+      inHouse.encargado = encargado;
+    }
+    
+    // Actualizar ubicación
+    if (ubicacion) {
+      if (ubicacion.direccion !== undefined) inHouse.ubicacion.direccion = ubicacion.direccion;
+      if (ubicacion.coordenadas) {
+        if (ubicacion.coordenadas.lat !== undefined) inHouse.ubicacion.coordenadas.lat = ubicacion.coordenadas.lat;
+        if (ubicacion.coordenadas.lng !== undefined) inHouse.ubicacion.coordenadas.lng = ubicacion.coordenadas.lng;
+      }
+      if (ubicacion.radioPermitido !== undefined) inHouse.ubicacion.radioPermitido = ubicacion.radioPermitido;
     }
 
     await inHouse.save();
 
-    const inHouseResponse = inHouse.toObject();
-    delete inHouseResponse.password;
+    const inHouseResponse = await InHouse.findById(inHouse._id)
+      .populate('encargado', 'nombre apellidos correo')
+      .populate('areas', 'nombre codigo');
 
     res.json({
       success: true,
@@ -233,7 +295,7 @@ exports.asignarUsuario = async (req, res) => {
 
     console.log('Asignando usuario:', { inhouseId: req.params.id, usuarioId });
 
-    const inHouse = await InHouse.findById(req.params.id).populate('area');
+    const inHouse = await InHouse.findById(req.params.id).populate('areas');
     if (!inHouse) {
       return res.status(404).json({
         success: false,
@@ -257,11 +319,11 @@ exports.asignarUsuario = async (req, res) => {
       });
     }
 
-    // Verificar que el InHouse tenga área asignada
-    if (!inHouse.area) {
+    // Verificar que el InHouse tenga áreas asignadas
+    if (!inHouse.areas || inHouse.areas.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'El In House no tiene un área asignada'
+        message: 'El In House no tiene áreas asignadas'
       });
     }
 
@@ -271,18 +333,19 @@ exports.asignarUsuario = async (req, res) => {
     });
     console.log('InHouse encontrado:', { 
       nombre: inHouse.nombre, 
-      area: inHouse.area._id || inHouse.area 
+      areas: inHouse.areas 
     });
 
-    // Verificar que el usuario pertenezca a la misma área
-    // Comparar los IDs correctamente (pueden ser ObjectId o objetos populados)
+    // Verificar que el usuario pertenezca a una de las áreas del In House
     const usuarioAreaId = usuario.area._id ? usuario.area._id.toString() : usuario.area.toString();
-    const inHouseAreaId = inHouse.area._id ? inHouse.area._id.toString() : inHouse.area.toString();
+    const inHouseAreaIds = inHouse.areas.map(a => 
+      a._id ? a._id.toString() : a.toString()
+    );
     
-    if (usuarioAreaId !== inHouseAreaId) {
+    if (!inHouseAreaIds.includes(usuarioAreaId)) {
       return res.status(400).json({
         success: false,
-        message: 'El usuario no pertenece al área del In House'
+        message: 'El usuario no pertenece a ninguna de las áreas del In House'
       });
     }
 
@@ -476,6 +539,122 @@ exports.obtenerEstadisticas = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error al obtener estadísticas',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Eliminar In House
+// @route   DELETE /api/inhouses/:id
+// @access  Private/Admin/AdminArea
+exports.eliminarInHouse = async (req, res) => {
+  try {
+    const inHouse = await InHouse.findById(req.params.id);
+    
+    if (!inHouse) {
+      return res.status(404).json({
+        success: false,
+        message: 'In House no encontrado'
+      });
+    }
+
+    // Remover In House de todos los usuarios asignados
+    if (inHouse.usuariosAsignados && inHouse.usuariosAsignados.length > 0) {
+      await User.updateMany(
+        { _id: { $in: inHouse.usuariosAsignados } },
+        { $pull: { inHousesAsignados: inHouse._id } }
+      );
+    }
+
+    // Eliminar el In House
+    await InHouse.findByIdAndDelete(req.params.id);
+
+    res.json({
+      success: true,
+      message: 'In House eliminado exitosamente'
+    });
+  } catch (error) {
+    console.error('Error al eliminar In House:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar In House',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Asignar múltiples usuarios a In House
+// @route   PUT /api/inhouses/:id/asignar-usuarios
+// @access  Private/Admin/AdminArea
+exports.asignarUsuarios = async (req, res) => {
+  try {
+    const { usuariosIds } = req.body;
+
+    const inHouse = await InHouse.findById(req.params.id);
+    if (!inHouse) {
+      return res.status(404).json({
+        success: false,
+        message: 'In House no encontrado'
+      });
+    }
+
+    // Validar que usuariosIds sea un array
+    if (!Array.isArray(usuariosIds)) {
+      return res.status(400).json({
+        success: false,
+        message: 'usuariosIds debe ser un array'
+      });
+    }
+
+    // Obtener usuarios actuales
+    const usuariosActuales = inHouse.usuariosAsignados || [];
+    
+    // Usuarios a remover (estaban antes pero ya no están en la nueva lista)
+    const usuariosARemover = usuariosActuales.filter(
+      id => !usuariosIds.includes(id.toString())
+    );
+    
+    // Usuarios a agregar (están en la nueva lista pero no estaban antes)
+    const usuariosAAgregar = usuariosIds.filter(
+      id => !usuariosActuales.some(uid => uid.toString() === id)
+    );
+
+    // Remover InHouse de usuarios que ya no están asignados
+    if (usuariosARemover.length > 0) {
+      await User.updateMany(
+        { _id: { $in: usuariosARemover } },
+        { $pull: { inHousesAsignados: inHouse._id } }
+      );
+    }
+
+    // Agregar InHouse a nuevos usuarios
+    if (usuariosAAgregar.length > 0) {
+      await User.updateMany(
+        { _id: { $in: usuariosAAgregar } },
+        { $addToSet: { inHousesAsignados: inHouse._id } }
+      );
+    }
+
+    // Actualizar lista de usuarios en InHouse
+    inHouse.usuariosAsignados = usuariosIds;
+    await inHouse.save();
+
+    // Obtener InHouse actualizado con usuarios poblados
+    const inHouseActualizado = await InHouse.findById(req.params.id)
+      .populate('usuariosAsignados', 'nombre apellidos correo')
+      .populate('encargado', 'nombre apellidos correo')
+      .populate('areas', 'nombre');
+
+    res.json({
+      success: true,
+      message: 'Usuarios asignados exitosamente',
+      inHouse: inHouseActualizado
+    });
+  } catch (error) {
+    console.error('Error al asignar usuarios:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al asignar usuarios',
       error: error.message
     });
   }

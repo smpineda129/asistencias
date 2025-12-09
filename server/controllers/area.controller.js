@@ -226,7 +226,13 @@ exports.obtenerEstadisticasArea = async (req, res) => {
 // @access  Private
 exports.obtenerInHousesArea = async (req, res) => {
   try {
-    const inHouses = await InHouse.find({ area: req.params.id, activo: true })
+    // Buscar InHouses que tengan esta área en su array de áreas
+    const inHouses = await InHouse.find({ 
+      areas: req.params.id, 
+      activo: true 
+    })
+      .populate('encargado', 'nombre apellidos correo')
+      .populate('areas', 'nombre codigo')
       .populate('usuariosAsignados', 'nombre apellidos correo')
       .sort({ nombre: 1 });
 

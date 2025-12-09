@@ -6,7 +6,9 @@ const {
   obtenerInHouses,
   obtenerInHousePorId,
   actualizarInHouse,
+  eliminarInHouse,
   asignarUsuario,
+  asignarUsuarios,
   removerUsuario,
   obtenerTiempoReal,
   obtenerEstadisticas
@@ -201,6 +203,28 @@ router.put('/:id', verificarRol('admin', 'admin_area'), actualizarInHouse);
 
 /**
  * @swagger
+ * /inhouses/{id}:
+ *   delete:
+ *     summary: Eliminar In House
+ *     tags: [In Houses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: In House eliminado exitosamente
+ *       404:
+ *         description: In House no encontrado
+ */
+router.delete('/:id', verificarRol('admin', 'admin_area'), eliminarInHouse);
+
+/**
+ * @swagger
  * /inhouses/{id}/usuarios:
  *   post:
  *     summary: Asignar usuario a In House
@@ -232,6 +256,13 @@ router.put('/:id', verificarRol('admin', 'admin_area'), actualizarInHouse);
  *         description: Usuario no pertenece al área
  */
 router.post('/:id/usuarios', verificarRol('admin', 'admin_area'), asignarUsuario);
+
+/**
+ * @route   PUT /api/inhouses/:id/asignar-usuarios
+ * @desc    Asignar múltiples usuarios a In House
+ * @access  Private/Admin/AdminArea
+ */
+router.put('/:id/asignar-usuarios', verificarRol('admin', 'admin_area'), asignarUsuarios);
 
 /**
  * @swagger

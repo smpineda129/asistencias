@@ -10,7 +10,8 @@ const {
   marcarIngreso,
   marcarSalida,
   obtenerAsistenciaActiva,
-  obtenerEstadoTiempoReal
+  obtenerEstadoTiempoReal,
+  obtenerEstadoTiempoRealArea
 } = require('../controllers/attendance.controller');
 const { protegerRuta, verificarRol, soloAdmin } = require('../middlewares/auth.middleware');
 
@@ -52,7 +53,7 @@ router.use(protegerRuta);
  *                   items:
  *                     $ref: '#/components/schemas/Asistencia'
  */
-router.get('/', verificarRol('admin', 'ceo'), obtenerAsistencias);
+router.get('/', verificarRol('admin', 'ceo', 'encargado_inhouse', 'admin_area'), obtenerAsistencias);
 
 /**
  * @swagger
@@ -342,6 +343,13 @@ router.get('/activa', obtenerAsistenciaActiva);
  *                     type: object
  */
 router.get('/estado-tiempo-real', verificarRol('admin', 'ceo'), obtenerEstadoTiempoReal);
+
+/**
+ * @route   GET /api/attendance/estado-tiempo-real-area/:areaId
+ * @desc    Obtener estado en tiempo real de un área específica
+ * @access  Private/Admin/AdminArea
+ */
+router.get('/estado-tiempo-real-area/:areaId', verificarRol('admin', 'admin_area'), obtenerEstadoTiempoRealArea);
 
 /**
  * @route   DELETE /api/attendance/:id

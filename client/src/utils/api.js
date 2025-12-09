@@ -30,7 +30,11 @@ api.interceptors.response.use(
       // Token inválido o expirado
       localStorage.removeItem('token');
       localStorage.removeItem('usuario');
-      window.location.href = '/login';
+      
+      // Solo redirigir si no estamos ya en login
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -64,17 +68,8 @@ export const attendanceAPI = {
   marcarIngreso: (data) => api.post('/attendance/ingreso', data),
   marcarSalida: (id) => api.put(`/attendance/salida/${id}`),
   obtenerAsistenciaActiva: () => api.get('/attendance/activa'),
-  obtenerEstadoTiempoReal: () => api.get('/attendance/estado-tiempo-real')
-};
-
-// Funciones de biometría
-export const biometricAPI = {
-  registrarHuella: (datos) => api.post('/biometric/enroll', datos),
-  verificarHuella: (datos) => api.post('/biometric/verify', datos),
-  obtenerHuellasUsuario: (usuarioId) => api.get(`/biometric/user/${usuarioId}`),
-  verificarTieneHuellas: (usuarioId) => api.get(`/biometric/user/${usuarioId}/check`),
-  eliminarHuella: (id) => api.delete(`/biometric/${id}`),
-  obtenerEstadisticas: () => api.get('/biometric/stats')
+  obtenerEstadoTiempoReal: () => api.get('/attendance/estado-tiempo-real'),
+  obtenerEstadoTiempoRealArea: (areaId) => api.get(`/attendance/estado-tiempo-real-area/${areaId}`)
 };
 
 export default api;

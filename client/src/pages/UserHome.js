@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { attendanceAPI } from '../utils/api';
-import { CheckCircle, Calendar, Clock, TrendingUp, LogIn, LogOut, AlertCircle } from 'lucide-react';
+import api from '../utils/api';
+import { CheckCircle, Calendar, Clock, TrendingUp, LogIn, LogOut, AlertCircle, Briefcase } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Navbar from '../components/Navbar';
@@ -28,11 +29,46 @@ const UserHome = () => {
 
   const cargarInHouses = async () => {
     try {
+      console.log('Cargando InHouses para usuario:', usuario);
+      
       // Cargar In Houses asignados al usuario
-      const response = await attendanceAPI.get(`/users/${usuario.id}`);
-      setInHouses(response.data.usuario.inHousesAsignados || []);
+      const response = await api.get(`/users/${usuario.id}`);
+      console.log('Respuesta usuario:', response.data);
+      
+      const inHousesAsignados = response.data.usuario.inHousesAsignados || [];
+      console.log('InHouses asignados:', inHousesAsignados);
+      
+      // Si hay InHouses
+      if (inHousesAsignados.length > 0) {
+        // Verificar si ya vienen como objetos completos o solo IDs
+        const primerElemento = inHousesAsignados[0];
+        
+        if (typeof primerElemento === 'object' && primerElemento._id) {
+          // Ya vienen como objetos completos, obtener detalles adicionales si es necesario
+          const inHousesPromises = inHousesAsignados.map(ih => 
+            api.get(`/inhouses/${ih._id}`)
+          );
+          const inHousesResponses = await Promise.all(inHousesPromises);
+          const inHousesCompletos = inHousesResponses.map(res => res.data.inHouse);
+          console.log('InHouses completos:', inHousesCompletos);
+          setInHouses(inHousesCompletos);
+        } else {
+          // Son solo IDs, obtener detalles completos
+          const inHousesPromises = inHousesAsignados.map(ihId => 
+            api.get(`/inhouses/${ihId}`)
+          );
+          const inHousesResponses = await Promise.all(inHousesPromises);
+          const inHousesCompletos = inHousesResponses.map(res => res.data.inHouse);
+          console.log('InHouses completos:', inHousesCompletos);
+          setInHouses(inHousesCompletos);
+        }
+      } else {
+        console.log('No hay InHouses asignados');
+        setInHouses([]);
+      }
     } catch (error) {
       console.error('Error al cargar In Houses:', error);
+      setInHouses([]);
     }
   };
 
@@ -78,20 +114,71 @@ const UserHome = () => {
 
     try {
       setProcesando(true);
-      const response = await attendanceAPI.marcarIngreso({ inHouseId: inHouseSeleccionado });
-      setAsistenciaActiva(response.data.asistencia);
-      setMensaje({ tipo: 'success', texto: '✅ Ingreso marcado exitosamente' });
-      setMostrarSelectorInHouse(false);
-      setInHouseSeleccionado('');
-      cargarMisAsistencias();
-      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
+      
+      // Obtener ubicación del usuario
+      if (!navigator.geolocation) {
+        setMensaje({ tipo: 'error', texto: '❌ Tu navegador no soporta geolocalización' });
+        setProcesando(false);
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            
+            const response = await attendanceAPI.marcarIngreso({ 
+              inHouseId: inHouseSeleccionado,
+              lat: latitude,
+              lng: longitude
+            });
+            
+            setAsistenciaActiva(response.data.asistencia);
+            setMensaje({ 
+              tipo: 'success', 
+              texto: `✅ Ingreso marcado exitosamente (${response.data.distancia}m del In House)` 
+            });
+            setMostrarSelectorInHouse(false);
+            setInHouseSeleccionado('');
+            cargarMisAsistencias();
+            setTimeout(() => setMensaje({ tipo: '', texto: '' }), 5000);
+          } catch (error) {
+            setMensaje({ 
+              tipo: 'error', 
+              texto: error.response?.data?.message || '❌ Error al marcar ingreso' 
+            });
+            setTimeout(() => setMensaje({ tipo: '', texto: '' }), 5000);
+          } finally {
+            setProcesando(false);
+          }
+        },
+        (error) => {
+          setProcesando(false);
+          let mensaje = '❌ Error al obtener ubicación';
+          
+          if (error.code === error.PERMISSION_DENIED) {
+            mensaje = '❌ Debes permitir el acceso a tu ubicación para marcar asistencia';
+          } else if (error.code === error.POSITION_UNAVAILABLE) {
+            mensaje = '❌ No se pudo determinar tu ubicación';
+          } else if (error.code === error.TIMEOUT) {
+            mensaje = '❌ Tiempo de espera agotado al obtener ubicación';
+          }
+          
+          setMensaje({ tipo: 'error', texto: mensaje });
+          setTimeout(() => setMensaje({ tipo: '', texto: '' }), 5000);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
     } catch (error) {
       setMensaje({ 
         tipo: 'error', 
         texto: error.response?.data?.message || '❌ Error al marcar ingreso' 
       });
-      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
-    } finally {
+      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 5000);
       setProcesando(false);
     }
   };
@@ -134,6 +221,16 @@ const UserHome = () => {
               </div>
             </div>
           </div>
+
+          {/* Alerta de InHouses */}
+          {inHouses.length === 0 && !cargando && (
+            <div className="mb-6 p-4 rounded-xl bg-red-100 text-red-800 border-l-4 border-red-500">
+              <div className="flex items-center">
+                <AlertCircle size={20} className="mr-2" />
+                ❌ No tienes In Houses asignados. Contacta al administrador.
+              </div>
+            </div>
+          )}
 
           {/* Mensajes de notificación */}
           {mensaje.texto && (
@@ -267,6 +364,12 @@ const UserHome = () => {
                             <Calendar size={16} className="text-primary mr-2" />
                             {format(new Date(asistencia.fecha), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: es })}
                           </div>
+                          {asistencia.inHouse && (
+                            <div className="flex items-center text-purple-600 text-sm mb-2">
+                              <Briefcase size={14} className="mr-2" />
+                              <span>In House: <strong>{asistencia.inHouse.nombre || asistencia.inHouse}</strong></span>
+                            </div>
+                          )}
                           <div className="grid grid-cols-2 gap-2">
                             <div className="flex items-center text-gray-600">
                               <LogIn size={14} className="text-green-600 mr-2" />
