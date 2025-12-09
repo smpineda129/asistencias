@@ -1,8 +1,6 @@
 const InHouse = require('../models/InHouse');
 const User = require('../models/User.model');
 const Attendance = require('../models/Attendance.model');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 
 // @desc    Crear nuevo In House
 // @route   POST /api/inhouses
@@ -81,60 +79,40 @@ exports.crearInHouse = async (req, res) => {
   }
 };
 
-// @desc    Login de encargado de In House
-// @route   POST /api/inhouses/login
-// @access  Public
-exports.loginInHouse = async (req, res) => {
+// @desc    Obtener In House del encargado autenticado
+// @route   GET /api/inhouses/mi-inhouse
+// @access  Private (encargado_inhouse)
+exports.obtenerMiInHouse = async (req, res) => {
   try {
-    const { correo, password } = req.body;
+    // El usuario debe tener rol encargado_inhouse y un inHouseEncargado asignado
+    if (req.usuario.rol !== 'encargado_inhouse' || !req.usuario.inHouseEncargado) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes un In House asignado'
+      });
+    }
 
-    // Buscar In House con password
-    const inHouse = await InHouse.findOne({ correo, activo: true })
-      .select('+password')
-      .populate('areas', 'nombre codigo');
+    const inHouse = await InHouse.findById(req.usuario.inHouseEncargado)
+      .populate('encargado', 'nombre apellidos correo')
+      .populate('areas', 'nombre codigo')
+      .populate('usuariosAsignados', 'nombre apellidos correo');
 
     if (!inHouse) {
-      return res.status(401).json({
+      return res.status(404).json({
         success: false,
-        message: 'Credenciales inválidas'
+        message: 'In House no encontrado'
       });
     }
-
-    // Verificar contraseña
-    const passwordValido = await bcrypt.compare(password, inHouse.password);
-    if (!passwordValido) {
-      return res.status(401).json({
-        success: false,
-        message: 'Credenciales inválidas'
-      });
-    }
-
-    // Generar token JWT
-    const token = jwt.sign(
-      { 
-        id: inHouse._id, 
-        tipo: 'inhouse',
-        areas: inHouse.areas.map(a => a._id)
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '30d' }
-    );
-
-    // Respuesta sin password
-    const inHouseResponse = inHouse.toObject();
-    delete inHouseResponse.password;
 
     res.json({
       success: true,
-      message: 'Inicio de sesión exitoso',
-      token,
-      inHouse: inHouseResponse
+      inHouse
     });
   } catch (error) {
-    console.error('Error en login In House:', error);
+    console.error('Error al obtener In House del encargado:', error);
     res.status(500).json({
       success: false,
-      message: 'Error en inicio de sesión',
+      message: 'Error al obtener In House',
       error: error.message
     });
   }

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   crearInHouse,
-  loginInHouse,
+  obtenerMiInHouse,
   obtenerInHouses,
   obtenerInHousePorId,
   actualizarInHouse,
@@ -15,51 +15,24 @@ const {
 } = require('../controllers/inhouse.controller');
 const { protegerRuta, soloAdmin, verificarRol } = require('../middlewares/auth.middleware');
 
-/**
- * @swagger
- * /inhouses/login:
- *   post:
- *     summary: Login de encargado de In House
- *     tags: [In Houses]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - correo
- *               - password
- *             properties:
- *               correo:
- *                 type: string
- *                 format: email
- *                 example: encargado@empresa.com
- *               password:
- *                 type: string
- *                 format: password
- *                 example: password123
- *     responses:
- *       200:
- *         description: Login exitoso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 token:
- *                   type: string
- *                 inHouse:
- *                   type: object
- *       401:
- *         description: Credenciales inválidas
- */
-router.post('/login', loginInHouse);
-
 // Rutas protegidas
 router.use(protegerRuta);
+
+/**
+ * @swagger
+ * /inhouses/mi-inhouse:
+ *   get:
+ *     summary: Obtener In House del encargado autenticado
+ *     tags: [In Houses]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: In House del encargado
+ *       403:
+ *         description: Usuario no es encargado de In House
+ */
+router.get('/mi-inhouse', obtenerMiInHouse);
 
 /**
  * @swagger

@@ -7,7 +7,10 @@
     "start": "node index.js",
     "dev": "npx nodemon index.js",
     "seed": "node scripts/seedData.js",
-    "init-db": "node scripts/init-db.js"
+    "init-db": "node scripts/init-db.js",
+    "seed-users": "node scripts/seed-users-simple.js",
+    "seed-users-full": "node scripts/seed-users.js",
+    "clean-users": "node scripts/clean-seed-users.js"
   },
   "keywords": [],
   "author": "",
