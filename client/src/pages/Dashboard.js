@@ -45,6 +45,21 @@ const Dashboard = () => {
   const [paginaActual, setPaginaActual] = useState(1);
   const registrosPorPagina = 10;
 
+  // Helper para formatear hora - maneja tanto String como Date
+  const formatearHora = (hora) => {
+    if (!hora) return 'N/A';
+    if (typeof hora === 'string' && /^\d{1,2}:\d{2}:\d{2}/.test(hora)) {
+      return hora;
+    }
+    try {
+      const fecha = new Date(hora);
+      if (isNaN(fecha.getTime())) return hora;
+      return format(fecha, 'HH:mm:ss');
+    } catch (error) {
+      return hora;
+    }
+  };
+
   useEffect(() => {
     cargarDatos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -455,14 +470,14 @@ const Dashboard = () => {
                         <td className="table-cell">
                           <div className="flex items-center">
                             <LogIn size={14} className="text-green-600 mr-2" />
-                            <span className="font-semibold">{asistencia.horaIngreso}</span>
+                            <span className="font-semibold">{formatearHora(asistencia.horaIngreso)}</span>
                           </div>
                         </td>
                         <td className="table-cell">
                           {asistencia.horaSalida ? (
                             <div className="flex items-center">
                               <LogOut size={14} className="text-red-600 mr-2" />
-                              <span className="font-semibold">{asistencia.horaSalida}</span>
+                              <span className="font-semibold">{formatearHora(asistencia.horaSalida)}</span>
                             </div>
                           ) : (
                             <span className="text-gray-400 text-sm">Pendiente</span>

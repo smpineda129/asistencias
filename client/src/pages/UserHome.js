@@ -18,6 +18,23 @@ const UserHome = () => {
   const [inHouseSeleccionado, setInHouseSeleccionado] = useState('');
   const [mostrarSelectorInHouse, setMostrarSelectorInHouse] = useState(false);
 
+  // Helper para formatear hora - maneja tanto String como Date
+  const formatearHora = (hora) => {
+    if (!hora) return 'N/A';
+    // Si ya es un string en formato de hora (HH:MM:SS), devolverlo tal cual
+    if (typeof hora === 'string' && /^\d{1,2}:\d{2}:\d{2}/.test(hora)) {
+      return hora;
+    }
+    // Si es una fecha válida, formatearla
+    try {
+      const fecha = new Date(hora);
+      if (isNaN(fecha.getTime())) return hora; // Si no es válida, devolver el valor original
+      return format(fecha, 'HH:mm:ss');
+    } catch (error) {
+      return hora; // En caso de error, devolver el valor original
+    }
+  };
+
   useEffect(() => {
     if (usuario) {
       cargarMisAsistencias();
@@ -260,7 +277,7 @@ const UserHome = () => {
                   </div>
                   <div className="flex items-center text-gray-700 mb-1">
                     <Clock size={16} className="mr-2 text-green-600" />
-                    <span>Hora de ingreso: <strong>{asistenciaActiva.horaIngreso}</strong></span>
+                    <span>Hora de ingreso: <strong>{formatearHora(asistenciaActiva.horaIngreso)}</strong></span>
                   </div>
                   <div className="flex items-center text-gray-700">
                     <Calendar size={16} className="mr-2 text-green-600" />
@@ -373,12 +390,12 @@ const UserHome = () => {
                           <div className="grid grid-cols-2 gap-2">
                             <div className="flex items-center text-gray-600">
                               <LogIn size={14} className="text-green-600 mr-2" />
-                              <span className="text-sm">Ingreso: <strong>{asistencia.horaIngreso}</strong></span>
+                              <span className="text-sm">Ingreso: <strong>{formatearHora(asistencia.horaIngreso)}</strong></span>
                             </div>
                             <div className="flex items-center text-gray-600">
                               <LogOut size={14} className="text-red-600 mr-2" />
                               <span className="text-sm">
-                                Salida: <strong>{asistencia.horaSalida || 'Pendiente'}</strong>
+                                Salida: <strong>{asistencia.horaSalida ? formatearHora(asistencia.horaSalida) : 'Pendiente'}</strong>
                               </span>
                             </div>
                           </div>

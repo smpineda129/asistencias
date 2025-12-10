@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { attendanceAPI } from '../utils/api';
 import { Users, UserCheck, UserX, RefreshCw, Clock, TrendingUp, LogIn } from 'lucide-react';
+import { format } from 'date-fns';
 import Navbar from '../components/Navbar';
 
 const TiempoReal = () => {
@@ -8,6 +9,21 @@ const TiempoReal = () => {
   const [cargando, setCargando] = useState(true);
   const [ultimaActualizacion, setUltimaActualizacion] = useState(new Date());
   const [autoRefresh, setAutoRefresh] = useState(true);
+
+  // Helper para formatear hora - maneja tanto String como Date
+  const formatearHora = (hora) => {
+    if (!hora) return 'N/A';
+    if (typeof hora === 'string' && /^\d{1,2}:\d{2}:\d{2}/.test(hora)) {
+      return hora;
+    }
+    try {
+      const fecha = new Date(hora);
+      if (isNaN(fecha.getTime())) return hora;
+      return format(fecha, 'HH:mm:ss');
+    } catch (error) {
+      return hora;
+    }
+  };
 
   const cargarDatos = async () => {
     try {
@@ -201,7 +217,7 @@ const TiempoReal = () => {
                             <td className="py-4 px-4">
                               <div className="flex items-center text-gray-700">
                                 <Clock size={16} className="mr-2 text-green-600" />
-                                <span className="font-semibold">{usuario.horaIngreso}</span>
+                                <span className="font-semibold">{formatearHora(usuario.horaIngreso)}</span>
                               </div>
                             </td>
                             <td className="py-4 px-4 text-center">
