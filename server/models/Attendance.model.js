@@ -17,11 +17,11 @@ const attendanceSchema = new mongoose.Schema({
     default: Date.now
   },
   horaIngreso: {
-    type: String,
+    type: Date,
     required: true
   },
   horaSalida: {
-    type: String,
+    type: Date,
     default: null
   },
   estado: {

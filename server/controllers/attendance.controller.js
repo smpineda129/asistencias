@@ -402,18 +402,14 @@ const marcarIngreso = async (req, res) => {
     
     // Crear nueva asistencia
     const ahora = new Date();
-    const horaIngreso = ahora.toLocaleTimeString('es-ES', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    });
+    // Guardar la hora como Date para cálculos precisos
+    const horaIngresoDate = new Date();
     
     const nuevaAsistencia = await Attendance.create({
       usuario: usuarioId,
       inHouse: inHouseId,
       fecha: ahora,
-      horaIngreso,
+      horaIngreso: horaIngresoDate,
       estado: 'activo',
       ubicacion: {
         lat,
@@ -481,14 +477,23 @@ const marcarSalida = async (req, res) => {
     
     // Marcar salida
     const ahora = new Date();
-    const horaSalida = ahora.toLocaleTimeString('es-ES', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    });
+    const horaSalidaDate = new Date();
     
-    asistencia.horaSalida = horaSalida;
+    // Validar que hayan pasado al menos 20 minutos desde el ingreso
+    const horaIngresoDate = new Date(asistencia.horaIngreso);
+    const diferenciaMs = horaSalidaDate - horaIngresoDate;
+    const diferenciaMinutos = Math.floor(diferenciaMs / (1000 * 60));
+    
+    if (diferenciaMinutos < 20) {
+      return res.status(400).json({
+        success: false,
+        message: `Deben pasar al menos 20 minutos entre el ingreso y la salida. Han transcurrido ${diferenciaMinutos} minuto(s).`,
+        minutosTranscurridos: diferenciaMinutos,
+        minutosRequeridos: 20
+      });
+    }
+    
+    asistencia.horaSalida = horaSalidaDate;
     asistencia.estado = 'completado';
     await asistencia.save();
     
